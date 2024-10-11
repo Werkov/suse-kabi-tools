@@ -157,9 +157,9 @@ impl SymCorpus {
         };
 
         thread::scope(|s| {
+            let mut workers = Vec::new();
             for _ in 0..num_workers {
-                // TODO Result/Error handling.
-                s.spawn(|| -> Result<(), crate::Error> {
+                workers.push(s.spawn(|| -> Result<(), crate::Error> {
                     loop {
                         let work_idx = next_work_idx.fetch_add(1, Ordering::Relaxed);
                         if work_idx >= symfiles.len() {
@@ -176,11 +176,17 @@ impl SymCorpus {
 
                         Self::load_single(path, file, &load_context)?;
                     }
-                });
+                }));
             }
-        });
 
-        Ok(())
+            // Join all worker threads. Return the first error if any is found, others are silently
+            // swallowed which is ok.
+            for worker in workers {
+                worker.join().unwrap()?
+            }
+
+            Ok(())
+        })
     }
 
     pub fn load_buffer<R>(&mut self, path: &Path, reader: R) -> Result<(), crate::Error>
