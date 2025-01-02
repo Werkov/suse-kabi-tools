@@ -6,7 +6,3 @@ name = "ksymtypes"
 version = "0.1.0"
 authors = ["Petr Pavlu <petr.pavlu@suse.com>"]
 edition = "2021"
-
-[dependencies]
-env_logger = "0.11.1"
-log = "0.4.20"

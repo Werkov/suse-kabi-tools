@@ -40,6 +40,22 @@ impl std::fmt::Display for Error {
     }
 }
 
+pub static DEBUG_LEVEL: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+
+pub fn init_debug_level(level: usize) {
+    assert!(DEBUG_LEVEL.get().is_none());
+    DEBUG_LEVEL.get_or_init(|| level);
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($($arg:tt)*) => {
+        if *$crate::DEBUG_LEVEL.get().unwrap_or(&0) > 0 {
+            eprintln!($($arg)*);
+        }
+    }
+}
+
 #[cfg(test)]
 #[macro_export]
 macro_rules! string_vec {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use ksymtypes::sym::SymCorpus;
-use log::debug;
+use ksymtypes::{debug, init_debug_level};
 use std::path::Path;
 use std::time::Instant;
 use std::{env, process};
@@ -47,6 +47,7 @@ fn print_usage(program: &str) {
             "Usage: {} [OPTION...] COMMAND\n",
             "\n",
             "Options:\n",
+            "  -d, --debug           enable debug output\n",
             "  -h, --help            print this help\n",
             "\n",
             "Commands:\n",
@@ -315,8 +316,6 @@ where
 }
 
 fn main() {
-    env_logger::init();
-
     let mut args = env::args();
 
     let program = match args.next() {
@@ -330,12 +329,17 @@ fn main() {
     // Handle global options and stop at the command.
     let mut maybe_command = None;
     let mut do_timing = false;
+    let mut debug_level = 0;
     loop {
         let arg = match args.next() {
             Some(arg) => arg,
             None => break,
         };
 
+        if arg == "-d" || arg == "--debug" {
+            debug_level += 1;
+            continue;
+        }
         if arg == "--timing" {
             do_timing = true;
             continue;
@@ -352,6 +356,8 @@ fn main() {
         maybe_command = Some(arg);
         break;
     }
+
+    init_debug_level(debug_level);
 
     let command = match maybe_command {
         Some(command) => command,
