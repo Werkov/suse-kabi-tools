@@ -1,0 +1,100 @@
+// Copyright (C) 2025 SUSE LLC <petr.pavlu@suse.com>
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+use std::ffi::OsStr;
+use std::fs;
+use std::path::Path;
+use std::process::{Command, ExitStatus};
+
+struct RunResult {
+    status: ExitStatus,
+    stdout: String,
+    stderr: String,
+}
+
+fn ksymtypes_run<I, S>(args: I) -> RunResult
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let output = Command::new(env!("CARGO_BIN_EXE_ksymtypes"))
+        .args(args)
+        .output()
+        .expect("failed to execute ksymtypes");
+    RunResult {
+        status: output.status,
+        stdout: String::from_utf8(output.stdout).unwrap(),
+        stderr: String::from_utf8(output.stderr).unwrap(),
+    }
+}
+
+#[test]
+fn compare_cmd() {
+    // Check that the compare command trivially works.
+    let result = ksymtypes_run([
+        "compare",
+        "tests/compare_cmd_a.symtypes",
+        "tests/compare_cmd_b.symtypes",
+    ]);
+    assert!(result.status.success());
+    assert_eq!(
+        result.stdout,
+        concat!(
+            "foo\n",
+            "-void foo ( int a )\n",
+            "+void foo ( long a )\n", //
+        )
+    );
+    assert_eq!(result.stderr, "");
+}
+
+#[test]
+fn consolidate_cmd() {
+    // Check that the consolidate command trivially works.
+    let result = ksymtypes_run([
+        "consolidate",
+        "tests/consolidate_cmd_a.symtypes",
+        "tests/consolidate_cmd_b.symtypes",
+    ]);
+    assert!(result.status.success());
+    assert_eq!(
+        result.stdout,
+        concat!(
+            "s#foo struct foo { int a ; }\n",
+            "bar int bar ( s#foo )\n",
+            "baz int baz ( s#foo )\n",
+            "F#tests/consolidate_cmd_a.symtypes bar\n",
+            "F#tests/consolidate_cmd_b.symtypes baz\n", //
+        )
+    );
+    assert_eq!(result.stderr, "");
+}
+
+#[test]
+fn consolidate_cmd_output() {
+    // Check that the consolidate command writes its result to the file specified by --output.
+    let output_path =
+        Path::new(env!("CARGO_TARGET_TMPDIR")).join("consolidate_cmd_output.symtypes");
+    fs::remove_file(&output_path).ok();
+    let result = ksymtypes_run([
+        AsRef::<OsStr>::as_ref("consolidate"),
+        "--output".as_ref(),
+        &output_path.as_ref(),
+        "tests/consolidate_cmd_a.symtypes".as_ref(),
+        "tests/consolidate_cmd_b.symtypes".as_ref(),
+    ]);
+    assert!(result.status.success());
+    assert_eq!(result.stdout, "");
+    assert_eq!(result.stderr, "");
+    let output_data = fs::read_to_string(output_path).expect("Unable to read the output file");
+    assert_eq!(
+        output_data,
+        concat!(
+            "s#foo struct foo { int a ; }\n",
+            "bar int bar ( s#foo )\n",
+            "baz int baz ( s#foo )\n",
+            "F#tests/consolidate_cmd_a.symtypes bar\n",
+            "F#tests/consolidate_cmd_b.symtypes baz\n", //
+        )
+    );
+}

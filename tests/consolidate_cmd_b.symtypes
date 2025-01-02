@@ -1,0 +1,2 @@
+s#foo struct foo { int a ; }
+baz int baz ( s#foo )
