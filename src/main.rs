@@ -58,7 +58,7 @@ fn print_usage() {
 /// Prints the usage message for the `consolidate` command on `stdout`.
 fn print_consolidate_usage() {
     print!(concat!(
-        "Usage: ksymtypes consolidate [OPTION...] PATH\n",
+        "Usage: ksymtypes consolidate [OPTION...] [PATH...]\n",
         "Consolidate symtypes into a single file.\n",
         "\n",
         "Options:\n",
@@ -179,31 +179,35 @@ where
             eprintln!("Unrecognized consolidate option '{}'", arg);
             return Err(());
         }
-        if maybe_path.is_none() {
-            maybe_path = Some(arg);
-            continue;
-        }
-        eprintln!("Excess consolidate argument '{}' specified", arg);
-        return Err(());
+        maybe_path = Some(arg);
+        break;
     }
 
-    let path = maybe_path.ok_or_else(|| {
+    let mut path = maybe_path.ok_or_else(|| {
         eprintln!("The consolidate source is missing");
     })?;
 
     // Do the consolidation.
-    debug!("Consolidate '{}' to '{}'", path, output);
+    let mut syms = SymCorpus::new();
 
-    let syms = {
-        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path));
+    loop {
+        debug!("Consolidate '{}' to '{}'", path, output);
 
-        let mut syms = SymCorpus::new();
-        if let Err(err) = syms.load(&Path::new(&path), num_workers) {
-            eprintln!("Failed to read symtypes from '{}': {}", path, err);
-            return Err(());
-        }
-        syms
-    };
+        {
+            let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path));
+
+            if let Err(err) = syms.load(&Path::new(&path), num_workers) {
+                eprintln!("Failed to read symtypes from '{}': {}", path, err);
+                return Err(());
+            }
+        };
+
+        // Check for another path on the command line.
+        path = match args.next() {
+            Some(path) => path,
+            None => break,
+        };
+    }
 
     {
         let _timing = Timing::new(
