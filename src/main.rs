@@ -41,52 +41,43 @@ impl Drop for Timing {
 }
 
 /// Prints the global usage message on `stdout`.
-fn print_usage(program: &str) {
-    print!(
-        concat!(
-            "Usage: {} [OPTION...] COMMAND\n",
-            "\n",
-            "Options:\n",
-            "  -d, --debug           enable debug output\n",
-            "  -h, --help            print this help\n",
-            "\n",
-            "Commands:\n",
-            "  consolidate           consolidate symtypes into a single file\n",
-            "  compare               show differences between two symtypes corpuses\n",
-        ),
-        program
-    );
+fn print_usage() {
+    print!(concat!(
+        "Usage: ksymtypes [OPTION...] COMMAND\n",
+        "\n",
+        "Options:\n",
+        "  -d, --debug           enable debug output\n",
+        "  -h, --help            print this help\n",
+        "\n",
+        "Commands:\n",
+        "  consolidate           consolidate symtypes into a single file\n",
+        "  compare               show differences between two symtypes corpuses\n",
+    ));
 }
 
 /// Prints the usage message for the `consolidate` command on `stdout`.
-fn print_consolidate_usage(program: &str) {
-    print!(
-        concat!(
-            "Usage: {} consolidate [OPTION...] PATH\n",
-            "Consolidate symtypes into a single file.\n",
-            "\n",
-            "Options:\n",
-            "  -h, --help            print this help\n",
-            "  -j, --jobs=NUM        use NUM workers to perform the operation simultaneously\n",
-            "  -o, --output=FILE     write the result in a specified file, instead of stdout\n",
-        ),
-        program
-    );
+fn print_consolidate_usage() {
+    print!(concat!(
+        "Usage: ksymtypes consolidate [OPTION...] PATH\n",
+        "Consolidate symtypes into a single file.\n",
+        "\n",
+        "Options:\n",
+        "  -h, --help            print this help\n",
+        "  -j, --jobs=NUM        use NUM workers to perform the operation simultaneously\n",
+        "  -o, --output=FILE     write the result in a specified file, instead of stdout\n",
+    ));
 }
 
 /// Prints the usage message for the `compare` command on `stdout`.
-fn print_compare_usage(program: &str) {
-    print!(
-        concat!(
-            "Usage: {} compare [OPTION...] PATH1 PATH2\n",
-            "Show differences between two symtypes corpuses.\n",
-            "\n",
-            "Options:\n",
-            "  -h, --help            print this help\n",
-            "  -j, --jobs=NUM        use NUM workers to perform the operation simultaneously\n",
-        ),
-        program
-    );
+fn print_compare_usage() {
+    print!(concat!(
+        "Usage: ksymtypes compare [OPTION...] PATH1 PATH2\n",
+        "Show differences between two symtypes corpuses.\n",
+        "\n",
+        "Options:\n",
+        "  -h, --help            print this help\n",
+        "  -j, --jobs=NUM        use NUM workers to perform the operation simultaneously\n",
+    ));
 }
 
 /// Handles an option with a mandatory value.
@@ -155,7 +146,7 @@ where
 }
 
 /// Handles the `consolidate` command which consolidates symtypes into a single file.
-fn do_consolidate<I>(program: &str, do_timing: bool, args: I) -> Result<(), ()>
+fn do_consolidate<I>(do_timing: bool, args: I) -> Result<(), ()>
 where
     I: IntoIterator<Item = String>,
 {
@@ -181,7 +172,7 @@ where
         }
 
         if arg == "-h" || arg == "--help" {
-            print_consolidate_usage(&program);
+            print_consolidate_usage();
             return Ok(());
         }
         if arg.starts_with("-") || arg.starts_with("--") {
@@ -233,7 +224,7 @@ where
 }
 
 /// Handles the `compare` command which shows differences between two symtypes corpuses.
-fn do_compare<I>(program: &str, do_timing: bool, args: I) -> Result<(), ()>
+fn do_compare<I>(do_timing: bool, args: I) -> Result<(), ()>
 where
     I: IntoIterator<Item = String>,
 {
@@ -255,7 +246,7 @@ where
         }
 
         if arg == "-h" || arg == "--help" {
-            print_compare_usage(&program);
+            print_compare_usage();
             return Ok(());
         }
         if arg.starts_with("-") || arg.starts_with("--") {
@@ -318,8 +309,9 @@ where
 fn main() {
     let mut args = env::args();
 
-    let program = match args.next() {
-        Some(program) => program,
+    // Skip over the program name.
+    match args.next() {
+        Some(_) => {}
         None => {
             eprintln!("Unknown program name");
             process::exit(1);
@@ -346,7 +338,7 @@ fn main() {
         }
 
         if arg == "-h" || arg == "--help" {
-            print_usage(&program);
+            print_usage();
             process::exit(0);
         }
         if arg.starts_with("-") || arg.starts_with("--") {
@@ -370,12 +362,12 @@ fn main() {
     // Process the specified command.
     match command.as_str() {
         "consolidate" => {
-            if let Err(_) = do_consolidate(&program, do_timing, args) {
+            if let Err(_) = do_consolidate(do_timing, args) {
                 process::exit(1);
             }
         }
         "compare" => {
-            if let Err(_) = do_compare(&program, do_timing, args) {
+            if let Err(_) = do_compare(do_timing, args) {
                 process::exit(1);
             }
         }
