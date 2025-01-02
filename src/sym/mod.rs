@@ -14,6 +14,8 @@ use std::{fs, io, thread};
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_format;
 
 #[derive(Eq, PartialEq)]
 enum Token {
