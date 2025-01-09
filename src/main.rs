@@ -3,7 +3,7 @@
 
 use ksymtypes::sym::SymCorpus;
 use ksymtypes::{debug, init_debug_level};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use std::{env, process};
 
@@ -183,30 +183,34 @@ where
         break;
     }
 
-    let mut path = maybe_path.ok_or_else(|| {
+    let path = maybe_path.ok_or_else(|| {
         eprintln!("The consolidate source is missing");
     })?;
+
+    // Check for another paths on the command line.
+    let mut paths = vec![PathBuf::from(&path)];
+    for arg in args {
+        paths.push(PathBuf::from(&arg));
+    }
 
     // Do the consolidation.
     let mut syms = SymCorpus::new();
 
-    loop {
-        debug!("Consolidate '{}' to '{}'", path, output);
+    {
+        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{:?}'", paths));
 
-        {
-            let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path));
-
-            if let Err(err) = syms.load(&Path::new(&path), num_workers) {
-                eprintln!("Failed to read symtypes from '{}': {}", path, err);
-                return Err(());
+        if let Err(err) = syms.load_multiple(&paths, num_workers) {
+            if paths.len() == 1 {
+                eprintln!(
+                    "Failed to read symtypes from '{}': {}",
+                    paths[0].display(),
+                    err
+                );
+            } else {
+                eprintln!("Failed to read specified symtypes: {}", err);
             }
-        };
-
-        // Check for another path on the command line.
-        path = match args.next() {
-            Some(path) => path,
-            None => break,
-        };
+            return Err(());
+        }
     }
 
     {
