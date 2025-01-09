@@ -179,7 +179,7 @@ impl SymCorpus {
         }
 
         // Load all files.
-        self.load_multiple(&symfiles, num_workers)
+        self.load_symfiles(&symfiles, num_workers)
     }
 
     /// Collects recursively all symtypes under a given path.
@@ -230,8 +230,8 @@ impl SymCorpus {
         Ok(())
     }
 
-    /// Loads all specified symtypes.
-    pub fn load_multiple(
+    /// Loads all specified `.symtypes` files.
+    fn load_symfiles(
         &mut self,
         symfiles: &Vec<PathBuf>,
         num_workers: i32,
@@ -263,7 +263,7 @@ impl SymCorpus {
                             )
                         })?;
 
-                        Self::load_single(path, file, &load_context)?;
+                        Self::load_inner(path, file, &load_context)?;
                     }
                 }));
             }
@@ -288,13 +288,13 @@ impl SymCorpus {
             files: Mutex::new(&mut self.files),
         };
 
-        Self::load_single(path, reader, &load_context)?;
+        Self::load_inner(path, reader, &load_context)?;
 
         Ok(())
     }
 
     /// Loads symtypes data from a specified reader.
-    fn load_single<R>(
+    fn load_inner<R>(
         path: &Path,
         reader: R,
         load_context: &ParallelLoadContext,
