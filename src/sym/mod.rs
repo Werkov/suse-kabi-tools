@@ -25,14 +25,17 @@ enum Token {
 }
 
 impl Token {
+    /// Creates a new `Token::TypeRef`.
     fn new_typeref<S: Into<String>>(name: S) -> Self {
         Token::TypeRef(name.into())
     }
 
+    /// Creates a new `Token::Atom`.
     fn new_atom<S: Into<String>>(name: S) -> Self {
         Token::Atom(name.into())
     }
 
+    /// Returns the token data as a string slice.
     fn as_str(&self) -> &str {
         match self {
             Self::TypeRef(ref_name) => ref_name.as_str(),
@@ -155,6 +158,7 @@ struct ParallelLoadContext<'a> {
 }
 
 impl SymCorpus {
+    /// Creates a new empty corpus.
     pub fn new() -> Self {
         Self {
             types: Types::new(),
@@ -163,7 +167,10 @@ impl SymCorpus {
         }
     }
 
-    // TODO Describe.
+    /// Loads symtypes data from a given location.
+    ///
+    /// The `path` can point to a single `.symtypes` file or a directory. In the latter case, the
+    /// function recursively collects all `.symtypes` in that directory and loads them.
     pub fn load(&mut self, path: &Path, num_workers: i32) -> Result<(), crate::Error> {
         let paths = vec![path];
         self.load_multiple(&paths, num_workers)
@@ -198,7 +205,7 @@ impl SymCorpus {
         self.load_symfiles(&symfiles, num_workers)
     }
 
-    /// Collects recursively all symtypes under a given path.
+    /// Collects recursively all `.symtypes` files under a given path.
     fn collect_symfiles(path: &Path, symfiles: &mut Vec<PathBuf>) -> Result<(), crate::Error> {
         // TODO Report errors and skip directories?
         let dir_iter = fs::read_dir(path).map_err(|err| {
@@ -294,6 +301,9 @@ impl SymCorpus {
         })
     }
 
+    /// Loads symtypes data from a specified reader.
+    ///
+    /// The `path` should point to a `.symtypes` file name, indicating the origin of the data.
     pub fn load_buffer<R>(&mut self, path: &Path, reader: R) -> Result<(), crate::Error>
     where
         R: io::Read,
