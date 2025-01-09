@@ -421,7 +421,7 @@ impl SymCorpus {
                 };
 
                 let mut records = FileRecords::new();
-                for mut type_name in words {
+                for type_name in words {
                     // Parse the base name and variant name/index.
                     let (base_name, orig_variant_name) = Self::split_type_name(type_name);
 
