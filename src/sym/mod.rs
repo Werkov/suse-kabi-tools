@@ -17,6 +17,7 @@ mod tests;
 #[cfg(test)]
 mod tests_format;
 
+/// A token used in the description of a type.
 #[derive(Eq, PartialEq)]
 enum Token {
     TypeRef(String),
@@ -40,19 +41,105 @@ impl Token {
     }
 }
 
+/// A sequence of tokens, describing one type.
 type Tokens = Vec<Token>;
+
+/// A collection of all variants of the same type name in a given corpus.
 type TypeVariants = Vec<Tokens>;
+
+/// A mapping from a type name to all its known variants.
 type Types = HashMap<String, TypeVariants>;
+
+/// A mapping from a symbol name to an index in `SymFiles`, specifying in which file the symbol is
+/// defined.
 type Exports = HashMap<String, usize>;
+
+/// A mapping from a type name to an index in `TypeVariants`, specifying its variant in a given
+/// file.
 type FileRecords = HashMap<String, usize>;
 
+/// A representation of a single `.symtypes` file.
 struct SymFile {
     path: PathBuf,
     records: FileRecords,
 }
 
+/// A collection of `.symtypes` files.
 type SymFiles = Vec<SymFile>;
 
+/// A representation of a kernel kABI, loaded from `.symtypes` files.
+///
+/// * The `types` collection stores all types and their variants.
+/// * The `files` collection records types in individual `.symtypes` files. Each type uses an index
+///   to reference its variant in `types`.
+/// * The `exports` collection provides all exports in the corpus. Each export uses an index to
+///   reference its origin in `files`.
+///
+/// For instance, consider the following corpus consisting of two files `test_a.symtypes` and
+/// `test_b.symtypes`:
+///
+/// * `test_a.symtypes`:
+///
+///   ```text
+///   s#foo struct foo { int a ; }
+///   bar int bar ( s#foo )
+///   ```
+///
+/// * `test_b.symtypes`:
+///
+///   ```text
+///   s#foo struct foo { UNKNOWN }
+///   baz int baz ( s#foo )
+///   ```
+///
+/// The corpus has two exports `bar` and `baz`, with each referencing structure `foo`, but with
+/// different definitions, one is complete and one is incomplete.
+///
+/// The data would be represented as follows:
+///
+/// ```text
+/// SymCorpus {
+///     types: Types {
+///         "s#foo": TypeVariants[
+///             Tokens[Atom("struct"), Atom("foo"), Atom("{"), Atom("int"), Atom("a"), Atom(";"), Atom("}")],
+///             Tokens[Atom("struct"), Atom("foo"), Atom("{"), Atom("UNKNOWN"), Atom("}")],
+///         ],
+///         "bar": TypeVariants[
+///             Tokens[Atom("int"), Atom("bar"), Atom("("), TypeRef("s#foo"), Atom(")")],
+///         ],
+///         "baz": TypeVariants[
+///             Tokens[Atom("int"), Atom("baz"), Atom("("), TypeRef("s#foo"), Atom(")")],
+///         ],
+///     },
+///     exports: Exports {
+///         "bar": 0,
+///         "baz": 1,
+///     },
+///     files: SymFiles[
+///         SymFile {
+///             path: PathBuf("test_a.symtypes"),
+///             records: FileRecords {
+///                 "s#foo": 0,
+///                 "bar": 0,
+///             }
+///         },
+///         SymFile {
+///             path: PathBuf("test_b.symtypes"),
+///             records: FileRecords {
+///                 "s#foo": 1,
+///                 "baz": 0,
+///             }
+///         },
+///     ],
+/// }
+/// ```
+///
+/// Note importantly that if a `Token` in `TypeVariants` is a `TypeRef` then the reference only
+/// specifies a name of the target type, e.g. `s#foo` above. The actual type variant must be
+/// determined based on what file is being processed. This allows to trivially merge `Tokens` and
+/// limit memory needed to store the corpus. On the other hand, when comparing two `Tokens` vectors
+/// for ABI equality, the code needs to consider whether all referenced subtypes are actually equal
+/// as well.
 pub struct SymCorpus {
     types: Types,
     exports: Exports,
