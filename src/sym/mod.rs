@@ -401,78 +401,75 @@ impl SymCorpus {
 
         // TODO Validate all references?
 
-        if is_consolidated {
-            // Handle file declarations.
-            for i in file_indices {
-                let mut words = lines[i].split_ascii_whitespace();
-
-                let record_name = words.next().unwrap();
-                assert!(record_name.starts_with("F#"));
-                let file_name = &record_name[2..];
-
-                let file_idx = {
-                    let symfile = SymFile {
-                        path: Path::new(file_name).to_path_buf(),
-                        records: FileRecords::new(),
-                    };
-                    let mut files = load_context.files.lock().unwrap();
-                    files.push(symfile);
-                    files.len() - 1
-                };
-
-                let mut records = FileRecords::new();
-                for type_name in words {
-                    // Parse the base name and variant name/index.
-                    let (base_name, orig_variant_name) = Self::split_type_name(type_name);
-
-                    // Look up how the variant got remapped.
-                    let variant_idx = *remap
-                        .get(base_name)
-                        .and_then(|hash| hash.get(orig_variant_name))
-                        .ok_or_else(|| {
-                            crate::Error::new_parse(&format!(
-                                "{}:{}: Type {} is not known",
-                                path.display(),
-                                i + 1,
-                                type_name
-                            ))
-                        })?;
-
-                    // Insert the record.
-                    Self::insert_record(
-                        base_name,
-                        variant_idx,
-                        file_idx,
-                        &mut records,
-                        load_context,
-                    )?;
-                }
-
-                // Add implicit references, ones that were omitted by the F# declaration because
-                // only one variant exists in the entire consolidated file.
-                let walk_records: Vec<_> = records
-                    .iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect();
-                for (name, variant_idx) in walk_records {
-                    // TODO Simplify.
-                    let types = load_context.types.lock().unwrap();
-                    Self::extrapolate_file_record(
-                        path,
-                        file_name,
-                        &name,
-                        variant_idx,
-                        true,
-                        &*types,
-                        &mut records,
-                    )?;
-                }
-
-                let mut files = load_context.files.lock().unwrap();
-                files[file_idx].records = records;
-            }
-        } else {
+        if !is_consolidated {
             // Update the file records.
+            let mut files = load_context.files.lock().unwrap();
+            files[file_idx].records = records;
+            return Ok(());
+        }
+
+        // Consolidated file needs more work.
+
+        // Handle file declarations.
+        for i in file_indices {
+            let mut words = lines[i].split_ascii_whitespace();
+
+            let record_name = words.next().unwrap();
+            assert!(record_name.starts_with("F#"));
+            let file_name = &record_name[2..];
+
+            let file_idx = {
+                let symfile = SymFile {
+                    path: Path::new(file_name).to_path_buf(),
+                    records: FileRecords::new(),
+                };
+                let mut files = load_context.files.lock().unwrap();
+                files.push(symfile);
+                files.len() - 1
+            };
+
+            let mut records = FileRecords::new();
+            for type_name in words {
+                // Parse the base name and variant name/index.
+                let (base_name, orig_variant_name) = Self::split_type_name(type_name);
+
+                // Look up how the variant got remapped.
+                let variant_idx = *remap
+                    .get(base_name)
+                    .and_then(|hash| hash.get(orig_variant_name))
+                    .ok_or_else(|| {
+                        crate::Error::new_parse(&format!(
+                            "{}:{}: Type {} is not known",
+                            path.display(),
+                            i + 1,
+                            type_name
+                        ))
+                    })?;
+
+                // Insert the record.
+                Self::insert_record(base_name, variant_idx, file_idx, &mut records, load_context)?;
+            }
+
+            // Add implicit references, ones that were omitted by the F# declaration because only
+            // one variant exists in the entire consolidated file.
+            let walk_records: Vec<_> = records
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
+            for (name, variant_idx) in walk_records {
+                // TODO Simplify.
+                let types = load_context.types.lock().unwrap();
+                Self::extrapolate_file_record(
+                    path,
+                    file_name,
+                    &name,
+                    variant_idx,
+                    true,
+                    &*types,
+                    &mut records,
+                )?;
+            }
+
             let mut files = load_context.files.lock().unwrap();
             files[file_idx].records = records;
         }
