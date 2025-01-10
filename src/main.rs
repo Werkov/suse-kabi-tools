@@ -47,12 +47,18 @@ fn print_usage() {
         "\n",
         "Options:\n",
         "  -d, --debug           enable debug output\n",
-        "  -h, --help            print this help\n",
+        "  -h, --help            display this help and exit\n",
+        "  --version             output version information and exit\n",
         "\n",
         "Commands:\n",
         "  consolidate           consolidate symtypes into a single file\n",
         "  compare               show differences between two symtypes corpuses\n",
     ));
+}
+
+/// Prints the version information on `stdout`.
+fn print_version() {
+    println!("ksymtypes {}", env!("CARGO_PKG_VERSION"));
 }
 
 /// Prints the usage message for the `consolidate` command on `stdout`.
@@ -347,6 +353,10 @@ fn main() {
 
         if arg == "-h" || arg == "--help" {
             print_usage();
+            process::exit(0);
+        }
+        if arg == "--version" {
+            print_version();
             process::exit(0);
         }
         if arg.starts_with("-") || arg.starts_with("--") {
