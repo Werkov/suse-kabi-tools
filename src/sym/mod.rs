@@ -365,14 +365,14 @@ impl SymCorpus {
 
         // Parse all declarations.
         let mut file_indices = Vec::new();
-        for (i, line) in lines.iter().enumerate() {
+        for (line_idx, line) in lines.iter().enumerate() {
             // Obtain a name of the record.
             let mut words = line.split_ascii_whitespace();
             let name = words.next().ok_or_else(|| {
                 crate::Error::new_parse(&format!(
                     "{}:{}: Expected a record name",
                     path.display(),
-                    i + 1
+                    line_idx + 1
                 ))
             })?;
 
@@ -382,7 +382,7 @@ impl SymCorpus {
                     return Err(crate::Error::new_parse(&format!(
                         "{}:{}: Duplicate record '{}'",
                         path.display(),
-                        i + 1,
+                        line_idx + 1,
                         name,
                     )))
                 }
@@ -392,7 +392,7 @@ impl SymCorpus {
             // Check for a file declaration and remember its index. File declarations are processed
             // later after remapping of all symbol variants is known.
             if name.starts_with("F#") {
-                file_indices.push(i);
+                file_indices.push(line_idx);
                 continue;
             }
 
@@ -436,8 +436,8 @@ impl SymCorpus {
         // Consolidated file needs more work.
 
         // Handle file declarations.
-        for i in file_indices {
-            let mut words = lines[i].split_ascii_whitespace();
+        for line_idx in file_indices {
+            let mut words = lines[line_idx].split_ascii_whitespace();
 
             let record_name = words.next().unwrap();
             assert!(record_name.starts_with("F#"));
@@ -466,7 +466,7 @@ impl SymCorpus {
                         crate::Error::new_parse(&format!(
                             "{}:{}: Type '{}' is not known",
                             path.display(),
-                            i + 1,
+                            line_idx + 1,
                             type_name
                         ))
                     })?;
