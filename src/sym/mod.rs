@@ -207,7 +207,6 @@ impl SymCorpus {
 
     /// Collects recursively all `.symtypes` files under a given path.
     fn collect_symfiles(path: &Path, symfiles: &mut Vec<PathBuf>) -> Result<(), crate::Error> {
-        // TODO Report errors and skip directories?
         let dir_iter = fs::read_dir(path).map_err(|err| {
             crate::Error::new_io(
                 &format!("Failed to read directory '{}'", path.display()),
@@ -330,11 +329,13 @@ impl SymCorpus {
     {
         debug!("Loading {}", path.display());
 
-        // Read all declarations.
-        // TODO Describe the types.
         let mut records = FileRecords::new();
+
+        // Map each variant name/index that the type has in this specific .symtypes file to one
+        // which it got assigned in the entire loaded corpus.
         let mut remap = HashMap::new();
 
+        // Read all content from the file.
         let lines = Self::read_lines(path, reader)?;
 
         // Detect whether the input is a single or consolidated symtypes file.
@@ -349,7 +350,6 @@ impl SymCorpus {
         let file_idx = if !is_consolidated {
             // Record the file early to determine its file_idx.
             let symfile = SymFile {
-                // TODO Drop the root prefix.
                 path: path.to_path_buf(),
                 records: FileRecords::new(),
             };
