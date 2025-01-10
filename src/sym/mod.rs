@@ -560,7 +560,6 @@ impl SymCorpus {
 
     fn merge_type(type_name: &str, tokens: Tokens, load_context: &ParallelLoadContext) -> usize {
         let mut types = load_context.types.lock().unwrap();
-        // TODO Use .entry()?
         match types.get_mut(type_name) {
             Some(variants) => {
                 for (i, variant) in variants.iter().enumerate() {
@@ -572,9 +571,10 @@ impl SymCorpus {
                 return variants.len() - 1;
             }
             None => {
-                let mut variants = Vec::new();
-                variants.push(tokens);
-                types.insert(type_name.to_string(), variants);
+                // XXX HashMap in stable Rust (1.84) doesn't offer to do a lookup using &str but
+                // insert the key as String if it is missing. The code opts to run the lookup again
+                // if the key is missing and the key+value pair needs inserting.
+                types.insert(type_name.to_string(), vec![tokens]);
                 return 0;
             }
         }
@@ -631,10 +631,9 @@ impl SymCorpus {
 
             // See if the symbol was already processed.
             //
-            // Unfortunately, HashMap in stable Rust doesn't offer to do a lookup using &str but
-            // insert the key as String if it is missing. The code opts to run the lookup again
-            // if the key is missing and the key+value pair needs inserting.
-            // https://stackoverflow.com/questions/51542024/how-do-i-use-the-entry-api-with-an-expensive-key-that-is-only-constructed-if-the
+            // XXX HashMap in stable Rust (1.84) doesn't offer to do a lookup using &str but insert
+            // the key as String if it is missing. The code opts to run the lookup again if the key
+            // is missing and the key+value pair needs inserting.
             if records.get(name).is_some() {
                 return Ok(());
             }
@@ -989,9 +988,9 @@ impl SymCorpus {
         changes: &Mutex<TypeChanges<'a>>,
     ) {
         let mut changes = changes.lock().unwrap();
-        // TODO Rewrite using .entry().
-        match changes.get_mut(name) {
-            Some(variants) => {
+        match changes.entry(name) {
+            Occupied(mut variants_entry) => {
+                let variants = variants_entry.get_mut();
                 for (tokens2, other_tokens2) in &*variants {
                     if Self::are_tokens_eq(tokens, tokens2)
                         && Self::are_tokens_eq(other_tokens, other_tokens2)
@@ -1001,10 +1000,8 @@ impl SymCorpus {
                 }
                 variants.push((tokens, other_tokens));
             }
-            None => {
-                let mut variants = Vec::new();
-                variants.push((tokens, other_tokens));
-                changes.insert(name, variants);
+            Vacant(variants_entry) => {
+                variants_entry.insert(vec![(tokens, other_tokens)]);
             }
         }
     }
