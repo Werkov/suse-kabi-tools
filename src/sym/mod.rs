@@ -240,8 +240,7 @@ impl SymCorpus {
                 continue;
             }
 
-            let file_name = entry.file_name();
-            let ext = match Path::new(&file_name).extension() {
+            let ext = match entry_path.extension() {
                 Some(ext) => ext,
                 None => continue,
             };
