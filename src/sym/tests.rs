@@ -109,7 +109,7 @@ fn read_write_basic() {
         .as_bytes(),
     );
     let mut out = Vec::new();
-    syms.write_consolidated(&mut out);
+    syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
@@ -142,7 +142,7 @@ fn read_write_shared_struct() {
         .as_bytes(),
     );
     let mut out = Vec::new();
-    syms.write_consolidated(&mut out);
+    syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
@@ -177,7 +177,7 @@ fn read_write_differing_struct() {
         .as_bytes(),
     );
     let mut out = Vec::new();
-    syms.write_consolidated(&mut out);
+    syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(

@@ -219,7 +219,7 @@ where
             &format!("Writing consolidated symtypes to '{}'", output),
         );
 
-        if let Err(err) = syms.write_consolidated_file(&output) {
+        if let Err(err) = syms.write_consolidated(Path::new(&output)) {
             eprintln!(
                 "Failed to write consolidated symtypes to '{}': {}",
                 output, err

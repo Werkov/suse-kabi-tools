@@ -772,10 +772,9 @@ impl SymCorpus {
     }
 
     /// Writes the corpus in the consolidated form into a specified file.
-    pub fn write_consolidated_file(&self, filename: &str) -> Result<(), crate::Error> {
+    pub fn write_consolidated(&self, path: &Path) -> Result<(), crate::Error> {
         // Open the output file.
-        let path = Path::new(filename);
-        let file: Box<dyn Write> = if filename == "-" {
+        let writer: Box<dyn Write> = if path == Path::new("-") {
             Box::new(io::stdout())
         } else {
             match File::create(path) {
@@ -789,13 +788,32 @@ impl SymCorpus {
             }
         };
 
-        self.write_consolidated(file)
+        self.write_consolidated_buffer(path, writer)
     }
 
-    pub fn write_consolidated<W>(&self, writer: W) -> Result<(), crate::Error>
+    /// Writes the corpus in the consolidated form into a specified writer.
+    ///
+    /// The `path` should point to a `.symtypes` file name, indicating the target of the data.
+    pub fn write_consolidated_buffer<W>(&self, path: &Path, writer: W) -> Result<(), crate::Error>
     where
         W: io::Write,
     {
+        // Helper trait to map std::io::Error to crate::Error().
+        trait MapIOErr {
+            fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
+        }
+
+        impl MapIOErr for Result<(), std::io::Error> {
+            fn map_io_err(self, path: &Path) -> Result<(), crate::Error> {
+                self.map_err(|err| {
+                    crate::Error::new_io(
+                        &format!("Failed to write data to file '{}'", path.display()),
+                        err,
+                    )
+                })
+            }
+        }
+
         let mut writer = BufWriter::new(writer);
 
         // Initialize output data. Variable output_types records all output symbols, file_types
@@ -856,14 +874,14 @@ impl SymCorpus {
                 let tokens = &variants[variant_idx];
 
                 if needs_suffix {
-                    write!(writer, "{}@{}", name, remap_idx);
+                    write!(writer, "{}@{}", name, remap_idx).map_io_err(path)?;
                 } else {
-                    write!(writer, "{}", name);
+                    write!(writer, "{}", name).map_io_err(path)?;
                 }
                 for token in tokens {
-                    write!(writer, " {}", token.as_str());
+                    write!(writer, " {}", token.as_str()).map_io_err(path)?;
                 }
-                writeln!(writer, "");
+                writeln!(writer, "").map_io_err(path)?;
             }
         }
 
@@ -881,15 +899,15 @@ impl SymCorpus {
             // Output the F# record in form `F#<filename> <type@variant>... <export>...`. Types with
             // only one variant in the entire consolidated file can be skipped because they can be
             // implicitly determined by a reader.
-            write!(writer, "F#{}", symfile.path.display());
+            write!(writer, "F#{}", symfile.path.display()).map_io_err(path)?;
             for &(_, name, remap_idx) in &sorted_types {
                 if remap_idx != usize::MAX {
-                    write!(writer, " {}@{}", name, remap_idx);
+                    write!(writer, " {}@{}", name, remap_idx).map_io_err(path)?;
                 } else if Self::is_export(name) {
-                    write!(writer, " {}", name);
+                    write!(writer, " {}", name).map_io_err(path)?;
                 }
             }
-            writeln!(writer, "");
+            writeln!(writer, "").map_io_err(path)?;
         }
         Ok(())
     }
