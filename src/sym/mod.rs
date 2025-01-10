@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 use std::{fs, io, thread};
 
 #[cfg(test)]
@@ -152,7 +152,7 @@ pub struct SymCorpus {
 type TypeChanges<'a> = HashMap<&'a str, Vec<(&'a Tokens, &'a Tokens)>>;
 
 struct ParallelLoadContext<'a> {
-    types: Mutex<&'a mut Types>,
+    types: RwLock<&'a mut Types>,
     exports: Mutex<&'a mut Exports>,
     files: Mutex<&'a mut SymFiles>,
 }
@@ -261,7 +261,7 @@ impl SymCorpus {
         let next_work_idx = AtomicUsize::new(0);
 
         let load_context = ParallelLoadContext {
-            types: Mutex::new(&mut self.types),
+            types: RwLock::new(&mut self.types),
             exports: Mutex::new(&mut self.exports),
             files: Mutex::new(&mut self.files),
         };
@@ -307,7 +307,7 @@ impl SymCorpus {
         R: io::Read,
     {
         let load_context = ParallelLoadContext {
-            types: Mutex::new(&mut self.types),
+            types: RwLock::new(&mut self.types),
             exports: Mutex::new(&mut self.exports),
             files: Mutex::new(&mut self.files),
         };
@@ -482,8 +482,7 @@ impl SymCorpus {
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect();
             for (name, variant_idx) in walk_records {
-                // TODO Simplify.
-                let types = load_context.types.lock().unwrap();
+                let types = load_context.types.read().unwrap();
                 Self::extrapolate_file_record(
                     path,
                     file_name,
@@ -559,7 +558,7 @@ impl SymCorpus {
     }
 
     fn merge_type(type_name: &str, tokens: Tokens, load_context: &ParallelLoadContext) -> usize {
-        let mut types = load_context.types.lock().unwrap();
+        let mut types = load_context.types.write().unwrap();
         match types.get_mut(type_name) {
             Some(variants) => {
                 for (i, variant) in variants.iter().enumerate() {
