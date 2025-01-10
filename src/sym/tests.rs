@@ -106,6 +106,28 @@ fn read_invalid_file_record_ref3() {
 }
 
 #[test]
+fn read_duplicate_type_export() {
+    // Check that two exports with the same name in different files get rejected.
+    let mut syms = SymCorpus::new();
+    let result = syms.load_buffer(
+        Path::new("test.symtypes"),
+        concat!(
+            "foo int foo ( )\n" //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let result = syms.load_buffer(
+        Path::new("test2.symtypes"),
+        concat!(
+            "foo int foo ( )" //
+        )
+        .as_bytes(),
+    );
+    assert_parse_err!(result, "test2.symtypes:1: Export 'foo' is duplicate. Previous occurrence found in 'test.symtypes'.");
+}
+
+#[test]
 fn read_write_basic() {
     // Check reading of a single file and writing the consolidated output.
     let mut syms = SymCorpus::new();

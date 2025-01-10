@@ -420,7 +420,8 @@ impl SymCorpus {
                     .insert(orig_variant_name.to_string(), variant_idx);
             } else {
                 // Insert the record.
-                Self::insert_record(base_name, variant_idx, file_idx, &mut records, load_context)?;
+                records.insert(base_name.to_string(), variant_idx);
+                Self::try_insert_export(base_name, file_idx, line_idx, load_context)?;
             }
         }
 
@@ -472,7 +473,8 @@ impl SymCorpus {
                     })?;
 
                 // Insert the record.
-                Self::insert_record(base_name, variant_idx, file_idx, &mut records, load_context)?;
+                records.insert(base_name.to_string(), variant_idx);
+                Self::try_insert_export(base_name, file_idx, line_idx, load_context)?;
             }
 
             // Add implicit references, ones that were omitted by the F# declaration because only
@@ -579,24 +581,40 @@ impl SymCorpus {
         }
     }
 
-    /// Inserts the type specified by `base_name@variant_idx` in the file `records` and registers it
-    /// with its `file_idx` in the `load_context.exports` if it is an exported symbol.
-    fn insert_record(
-        base_name: &str,
-        variant_idx: usize,
+    /// Checks if a specified `type_name` is an export and, if so, registers it with its `file_idx`
+    /// in the `load_context.exports`.
+    fn try_insert_export(
+        type_name: &str,
         file_idx: usize,
-        records: &mut FileRecords,
+        line_idx: usize,
         load_context: &ParallelLoadContext,
     ) -> Result<(), crate::Error> {
-        records.insert(base_name.to_string(), variant_idx);
-
-        if Self::is_export(base_name) {
-            // TODO Diagnose duplicates.
-            let mut exports = load_context.exports.lock().unwrap();
-            exports.insert(base_name.to_string(), file_idx);
+        if !Self::is_export(type_name) {
+            return Ok(());
         }
 
-        Ok(())
+        // Try to add the export, return an error if it is a duplicate.
+        let other_file_idx = {
+            let mut exports = load_context.exports.lock().unwrap();
+            match exports.entry(type_name.to_string()) {
+                Occupied(export_entry) => *export_entry.get(),
+                Vacant(export_entry) => {
+                    export_entry.insert(file_idx);
+                    return Ok(());
+                }
+            }
+        };
+
+        let files = load_context.files.lock().unwrap();
+        let path = &files[file_idx].path;
+        let other_path = &files[other_file_idx].path;
+        Err(crate::Error::new_parse(&format!(
+            "{}:{}: Export '{}' is duplicate. Previous occurrence found in '{}'.",
+            path.display(),
+            line_idx + 1,
+            type_name,
+            other_path.display()
+        )))
     }
 
     /// Processes a single symbol in some file originated from an `F#` record and enhances the
