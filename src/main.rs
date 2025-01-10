@@ -287,7 +287,7 @@ where
         let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path1));
 
         let mut syms1 = SymCorpus::new();
-        if let Err(err) = syms1.load(&Path::new(&path1), num_workers) {
+        if let Err(err) = syms1.load(Path::new(&path1), num_workers) {
             eprintln!("Failed to read symtypes from '{}': {}", path1, err);
             return Err(());
         }
@@ -298,7 +298,7 @@ where
         let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path1));
 
         let mut syms2 = SymCorpus::new();
-        if let Err(err) = syms2.load(&Path::new(&path2), num_workers) {
+        if let Err(err) = syms2.load(Path::new(&path2), num_workers) {
             eprintln!("Failed to read symtypes from '{}': {}", path2, err);
             return Err(());
         }

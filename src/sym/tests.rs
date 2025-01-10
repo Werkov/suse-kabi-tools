@@ -34,7 +34,7 @@ fn read_empty_record() {
         "s#test2 struct test2 { }\n", //
     );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(&Path::new("file.symtypes"), input.as_bytes());
+    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
     assert_parse_err!(result, "file.symtypes:2: Expected a record name");
 }
 
@@ -46,7 +46,7 @@ fn read_duplicate_type_record() {
         "s#test struct test { int b ; }\n", //
     );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(&Path::new("file.symtypes"), input.as_bytes());
+    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
     assert_parse_err!(result, "file.symtypes:2: Duplicate record 's#test'");
 }
 
@@ -60,7 +60,7 @@ fn read_duplicate_file_record() {
         "F#test.symtypes baz\n", //
     );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(&Path::new("file.symtypes"), input.as_bytes());
+    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
     assert_parse_err!(
         result,
         "file.symtypes:4: Duplicate record 'F#test.symtypes'"
@@ -75,7 +75,7 @@ fn read_invalid_file_record_ref() {
         "F#test.symtypes bar\n", //
     );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(&Path::new("file.symtypes"), input.as_bytes());
+    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
     assert_parse_err!(result, "file.symtypes:1: Type bar is not known");
 }
 
@@ -87,7 +87,7 @@ fn read_invalid_file_record_ref2() {
         "F#test.symtypes bar@0\n", //
     );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(&Path::new("file.symtypes"), input.as_bytes());
+    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
     assert_parse_err!(result, "file.symtypes:1: Type bar@0 is not known");
 }
 
@@ -101,7 +101,7 @@ fn read_invalid_file_record_ref3() {
         "F#test2.symtypes bar@1\n", //
     );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(&Path::new("file.symtypes"), input.as_bytes());
+    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
     assert_parse_err!(result, "file.symtypes:3: Type bar@1 is not known");
 }
 
