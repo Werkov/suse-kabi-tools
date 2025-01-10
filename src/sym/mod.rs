@@ -326,7 +326,7 @@ impl SymCorpus {
     where
         R: io::Read,
     {
-        debug!("Loading {}", path.display());
+        debug!("Loading '{}'", path.display());
 
         let mut records = FileRecords::new();
 
@@ -464,7 +464,7 @@ impl SymCorpus {
                     .and_then(|hash| hash.get(orig_variant_name))
                     .ok_or_else(|| {
                         crate::Error::new_parse(&format!(
-                            "{}:{}: Type {} is not known",
+                            "{}:{}: Type '{}' is not known",
                             path.display(),
                             i + 1,
                             type_name
@@ -723,7 +723,7 @@ impl SymCorpus {
         let variant_idx = match symfile.records.get(name) {
             Some(&variant_idx) => variant_idx,
             None => panic!(
-                "Type {} is not known in file {}",
+                "Type '{}' is not known in file '{}'",
                 name,
                 symfile.path.display()
             ),
@@ -755,7 +755,7 @@ impl SymCorpus {
         // Process recursively all types that the symbol references.
         let variants = match self.types.get(name) {
             Some(variants) => variants,
-            None => panic!("Type {} has a missing declaration", name),
+            None => panic!("Type '{}' has a missing declaration", name),
         };
 
         for token in &variants[variant_idx] {
@@ -944,11 +944,15 @@ impl SymCorpus {
                     println!("");
                 }
                 None => {
-                    panic!("Type {} has a missing declaration", name);
+                    panic!("Type '{}' has a missing declaration", name);
                 }
             },
             None => {
-                panic!("Type {} is not known in file {}", name, file.path.display())
+                panic!(
+                    "Type '{}' is not known in file '{}'",
+                    name,
+                    file.path.display()
+                )
             }
         }
     }
@@ -957,7 +961,7 @@ impl SymCorpus {
         for file in &self.files {
             match file.records.get(name) {
                 Some(_variant_idx) => {
-                    println!("Found type {} in {}:", name, file.path.display());
+                    println!("Found type '{}' in '{}':", name, file.path.display());
                     let mut processed = HashSet::new();
                     self.print_file_type(&file, name, &mut processed);
                 }
@@ -971,11 +975,15 @@ impl SymCorpus {
             Some(&variant_idx) => match symtypes.types.get(name) {
                 Some(variants) => &variants[variant_idx],
                 None => {
-                    panic!("Type {} has a missing declaration", name);
+                    panic!("Type '{}' has a missing declaration", name);
                 }
             },
             None => {
-                panic!("Type {} is not known in file {}", name, file.path.display())
+                panic!(
+                    "Type '{}' is not known in file '{}'",
+                    name,
+                    file.path.display()
+                )
             }
         }
     }
@@ -1086,7 +1094,7 @@ impl SymCorpus {
                             );
                         }
                         None => {
-                            println!("Export {} is present in A but not in B", name);
+                            println!("Export '{}' is present in A but not in B", name);
                         }
                     }
                 });
@@ -1098,7 +1106,7 @@ impl SymCorpus {
             match self.exports.get(other_name) {
                 Some(_file_idx) => {}
                 None => {
-                    println!("Export {} is present in B but not in A", other_name);
+                    println!("Export '{}' is present in B but not in A", other_name);
                 }
             }
         }

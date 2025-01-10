@@ -76,7 +76,7 @@ fn read_invalid_file_record_ref() {
     );
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:1: Type bar is not known");
+    assert_parse_err!(result, "file.symtypes:1: Type 'bar' is not known");
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn read_invalid_file_record_ref2() {
     );
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:1: Type bar@0 is not known");
+    assert_parse_err!(result, "file.symtypes:1: Type 'bar@0' is not known");
 }
 
 #[test]
@@ -102,7 +102,7 @@ fn read_invalid_file_record_ref3() {
     );
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:3: Type bar@1 is not known");
+    assert_parse_err!(result, "file.symtypes:3: Type 'bar@1' is not known");
 }
 
 #[test]
