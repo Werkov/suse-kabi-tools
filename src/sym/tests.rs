@@ -4,6 +4,15 @@
 use super::*;
 use std::path::Path;
 
+macro_rules! assert_ok {
+    ($result:expr) => {
+        match $result {
+            Ok(()) => {}
+            result => panic!("assertion failed: {:?} is not of type Ok(())", result),
+        }
+    };
+}
+
 macro_rules! assert_parse_err {
     ($result:expr, $exp_desc:expr) => {
         match $result {
@@ -100,7 +109,7 @@ fn read_invalid_file_record_ref3() {
 fn read_write_basic() {
     // Check reading of a single file and writing the consolidated output.
     let mut syms = SymCorpus::new();
-    syms.load_buffer(
+    let result = syms.load_buffer(
         Path::new("test.symtypes"),
         concat!(
             "s#foo struct foo { int a ; }\n",
@@ -108,8 +117,10 @@ fn read_write_basic() {
         )
         .as_bytes(),
     );
+    assert_ok!(result);
     let mut out = Vec::new();
-    syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    let result = syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
@@ -125,7 +136,7 @@ fn read_write_shared_struct() {
     // Check that a structure declaration shared by two files appears only once in the consolidated
     // output.
     let mut syms = SymCorpus::new();
-    syms.load_buffer(
+    let result = syms.load_buffer(
         Path::new("test.symtypes"),
         concat!(
             "s#foo struct foo { int a ; }\n",
@@ -133,7 +144,8 @@ fn read_write_shared_struct() {
         )
         .as_bytes(),
     );
-    syms.load_buffer(
+    assert_ok!(result);
+    let result = syms.load_buffer(
         Path::new("test2.symtypes"),
         concat!(
             "s#foo struct foo { int a ; }\n",
@@ -141,8 +153,10 @@ fn read_write_shared_struct() {
         )
         .as_bytes(),
     );
+    assert_ok!(result);
     let mut out = Vec::new();
-    syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    let result = syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
@@ -160,7 +174,7 @@ fn read_write_differing_struct() {
     // Check that a structure declaration different in two files appears in all variants in the
     // consolidated output and they are correctly referenced by the F# entries.
     let mut syms = SymCorpus::new();
-    syms.load_buffer(
+    let result = syms.load_buffer(
         Path::new("test.symtypes"),
         concat!(
             "s#foo struct foo { int a ; }\n",
@@ -168,7 +182,8 @@ fn read_write_differing_struct() {
         )
         .as_bytes(),
     );
-    syms.load_buffer(
+    assert_ok!(result);
+    let result = syms.load_buffer(
         Path::new("test2.symtypes"),
         concat!(
             "s#foo struct foo { UNKNOWN }\n",
@@ -176,8 +191,10 @@ fn read_write_differing_struct() {
         )
         .as_bytes(),
     );
+    assert_ok!(result);
     let mut out = Vec::new();
-    syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    let result = syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
