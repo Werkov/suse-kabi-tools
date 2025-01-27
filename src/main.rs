@@ -3,7 +3,7 @@
 
 use ksymtypes::sym::SymCorpus;
 use ksymtypes::{debug, init_debug_level};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Instant;
 use std::{env, process};
 
@@ -151,6 +151,23 @@ where
     Ok(None)
 }
 
+/// Collects operands from the rest of `args` and checks that they are not an option, unless
+/// `past_dash_dash` is `true`.
+fn collect_operands<I>(args: I, past_dash_dash: bool, operands: &mut Vec<String>) -> Result<(), ()>
+where
+    I: Iterator<Item = String>,
+{
+    for arg in args {
+        // Check it's not an option.
+        if !past_dash_dash && arg.starts_with("-") {
+            eprintln!("Option '{}' must precede operands", arg);
+            return Err(());
+        }
+        operands.push(arg);
+    }
+    Ok(())
+}
+
 /// Handles the `consolidate` command which consolidates symtypes into a single file.
 fn do_consolidate<I>(do_timing: bool, args: I) -> Result<(), ()>
 where
@@ -160,6 +177,7 @@ where
     let mut args = args.into_iter();
     let mut output = "-".to_string();
     let mut num_workers = 1;
+    let mut past_dash_dash = false;
     let mut maybe_path = None;
 
     loop {
@@ -181,6 +199,10 @@ where
             print_consolidate_usage();
             return Ok(());
         }
+        if arg == "--" {
+            past_dash_dash = true;
+            break;
+        }
         if arg.starts_with("-") || arg.starts_with("--") {
             eprintln!("Unrecognized consolidate option '{}'", arg);
             return Err(());
@@ -189,15 +211,17 @@ where
         break;
     }
 
-    let path = maybe_path.ok_or_else(|| {
-        eprintln!("The consolidate source is missing");
-    })?;
-
-    // Check for another paths on the command line.
-    let mut paths = vec![PathBuf::from(&path)];
-    for arg in args {
-        paths.push(PathBuf::from(&arg));
+    // Collect all paths on the command line.
+    let mut paths = Vec::new();
+    if let Some(path) = maybe_path {
+        paths.push(path);
     }
+    collect_operands(args, past_dash_dash, &mut paths)?;
+
+    if paths.len() == 0 {
+        eprintln!("The consolidate source is missing");
+        return Err(());
+    };
 
     // Do the consolidation.
     let mut syms = SymCorpus::new();
@@ -209,7 +233,7 @@ where
             if paths.len() == 1 {
                 eprintln!(
                     "Failed to read symtypes from '{}': {}",
-                    paths[0].display(),
+                    Path::new(&paths[0]).display(),
                     err
                 );
             } else {
@@ -245,8 +269,8 @@ where
     // Parse specific command options.
     let mut args = args.into_iter();
     let mut num_workers = 1;
-    let mut maybe_path1 = None;
-    let mut maybe_path2 = None;
+    let mut past_dash_dash = false;
+    let mut maybe_path = None;
 
     loop {
         let arg = match args.next() {
@@ -263,49 +287,52 @@ where
             print_compare_usage();
             return Ok(());
         }
+        if arg == "--" {
+            past_dash_dash = true;
+            break;
+        }
         if arg.starts_with("-") || arg.starts_with("--") {
             eprintln!("Unrecognized compare option '{}'", arg);
             return Err(());
         }
-        if maybe_path1.is_none() {
-            maybe_path1 = Some(arg);
-            continue;
-        }
-        if maybe_path2.is_none() {
-            maybe_path2 = Some(arg);
-            continue;
-        }
-        eprintln!("Excess compare argument '{}' specified", arg);
-        return Err(());
+        maybe_path = Some(arg);
+        break;
     }
 
-    let path1 = maybe_path1.ok_or_else(|| {
-        eprintln!("The first compare source is missing");
-    })?;
-    let path2 = maybe_path2.ok_or_else(|| {
-        eprintln!("The second compare source is missing");
-    })?;
+    // Collect all paths on the command line.
+    let mut paths = Vec::new();
+    if let Some(path) = maybe_path {
+        paths.push(path);
+    }
+    collect_operands(args, past_dash_dash, &mut paths)?;
+
+    if paths.len() != 2 {
+        eprintln!(
+            "The compare command takes two sources, '{}' given",
+            paths.len()
+        );
+    }
 
     // Do the comparison.
-    debug!("Compare '{}' and '{}'", path1, path2);
+    debug!("Compare '{}' and '{}'", paths[0], paths[1]);
 
     let syms1 = {
-        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path1));
+        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", paths[0]));
 
         let mut syms1 = SymCorpus::new();
-        if let Err(err) = syms1.load(Path::new(&path1), num_workers) {
-            eprintln!("Failed to read symtypes from '{}': {}", path1, err);
+        if let Err(err) = syms1.load(Path::new(&paths[0]), num_workers) {
+            eprintln!("Failed to read symtypes from '{}': {}", paths[0], err);
             return Err(());
         }
         syms1
     };
 
     let syms2 = {
-        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path1));
+        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", paths[1]));
 
         let mut syms2 = SymCorpus::new();
-        if let Err(err) = syms2.load(Path::new(&path2), num_workers) {
-            eprintln!("Failed to read symtypes from '{}': {}", path2, err);
+        if let Err(err) = syms2.load(Path::new(&paths[1]), num_workers) {
+            eprintln!("Failed to read symtypes from '{}': {}", paths[1], err);
             return Err(());
         }
         syms2
