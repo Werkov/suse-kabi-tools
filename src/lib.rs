@@ -17,7 +17,7 @@ impl Error {
     fn new_io(desc: &str, io_err: std::io::Error) -> Self {
         Error::IO {
             desc: desc.to_string(),
-            io_err: io_err,
+            io_err,
         }
     }
 

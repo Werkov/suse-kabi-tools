@@ -118,7 +118,7 @@ where
 
     // Handle '--<long>=<value>'.
     if let Some(rem) = arg.strip_prefix(long) {
-        if let Some(value) = rem.strip_prefix("=") {
+        if let Some(value) = rem.strip_prefix('=') {
             return Ok(Some(value.to_string()));
         }
     }
@@ -159,7 +159,7 @@ where
 {
     for arg in args {
         // Check it's not an option.
-        if !past_dash_dash && arg.starts_with("-") {
+        if !past_dash_dash && arg.starts_with('-') {
             eprintln!("Option '{}' must precede operands", arg);
             return Err(());
         }
@@ -180,12 +180,7 @@ where
     let mut past_dash_dash = false;
     let mut maybe_path = None;
 
-    loop {
-        let arg = match args.next() {
-            Some(arg) => arg,
-            None => break,
-        };
-
+    while let Some(arg) = args.next() {
         if let Some(value) = handle_value_option(&arg, &mut args, "-o", "--output")? {
             output = value;
             continue;
@@ -203,7 +198,7 @@ where
             past_dash_dash = true;
             break;
         }
-        if arg.starts_with("-") || arg.starts_with("--") {
+        if arg.starts_with('-') || arg.starts_with("--") {
             eprintln!("Unrecognized consolidate option '{}'", arg);
             return Err(());
         }
@@ -218,7 +213,7 @@ where
     }
     collect_operands(args, past_dash_dash, &mut paths)?;
 
-    if paths.len() == 0 {
+    if paths.is_empty() {
         eprintln!("The consolidate source is missing");
         return Err(());
     };
@@ -272,12 +267,7 @@ where
     let mut past_dash_dash = false;
     let mut maybe_path = None;
 
-    loop {
-        let arg = match args.next() {
-            Some(arg) => arg,
-            None => break,
-        };
-
+    while let Some(arg) = args.next() {
         if let Some(value) = handle_jobs_option(&arg, &mut args)? {
             num_workers = value;
             continue;
@@ -291,7 +281,7 @@ where
             past_dash_dash = true;
             break;
         }
-        if arg.starts_with("-") || arg.starts_with("--") {
+        if arg.starts_with('-') || arg.starts_with("--") {
             eprintln!("Unrecognized compare option '{}'", arg);
             return Err(());
         }
@@ -363,12 +353,7 @@ fn main() {
     let mut maybe_command = None;
     let mut do_timing = false;
     let mut debug_level = 0;
-    loop {
-        let arg = match args.next() {
-            Some(arg) => arg,
-            None => break,
-        };
-
+    while let Some(arg) = args.next() {
         if arg == "-d" || arg == "--debug" {
             debug_level += 1;
             continue;
@@ -386,7 +371,7 @@ fn main() {
             print_version();
             process::exit(0);
         }
-        if arg.starts_with("-") || arg.starts_with("--") {
+        if arg.starts_with('-') || arg.starts_with("--") {
             eprintln!("Unrecognized global option '{}'", arg);
             process::exit(1);
         }
@@ -407,12 +392,12 @@ fn main() {
     // Process the specified command.
     match command.as_str() {
         "consolidate" => {
-            if let Err(_) = do_consolidate(do_timing, args) {
+            if do_consolidate(do_timing, args).is_err() {
                 process::exit(1);
             }
         }
         "compare" => {
-            if let Err(_) = do_compare(do_timing, args) {
+            if do_compare(do_timing, args).is_err() {
                 process::exit(1);
             }
         }

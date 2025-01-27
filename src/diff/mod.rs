@@ -118,10 +118,7 @@ fn myers<T: AsRef<str> + PartialEq>(a: &[T], b: &[T]) -> EditScript {
                 edit_script.reverse();
                 return edit_script;
             }
-            v[k] = DiagonalState {
-                x: x,
-                edit_index: edit_index,
-            };
+            v[k] = DiagonalState { x, edit_index };
         }
     }
     unreachable!();

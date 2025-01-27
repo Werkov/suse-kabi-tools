@@ -143,6 +143,7 @@ type SymFiles = Vec<SymFile>;
 /// limit memory needed to store the corpus. On the other hand, when comparing two `Tokens` vectors
 /// for ABI equality, the code needs to consider whether all referenced subtypes are actually equal
 /// as well.
+#[derive(Default)]
 pub struct SymCorpus {
     types: Types,
     exports: Exports,
@@ -254,7 +255,7 @@ impl SymCorpus {
     /// Loads all specified `.symtypes` files.
     fn load_symfiles(
         &mut self,
-        symfiles: &Vec<PathBuf>,
+        symfiles: &[PathBuf],
         num_workers: i32,
     ) -> Result<(), crate::Error> {
         // Load data from the files.
@@ -416,7 +417,7 @@ impl SymCorpus {
                 // Record a mapping from the original variant name/index to the new one.
                 remap
                     .entry(base_name.to_string())
-                    .or_insert_with(|| HashMap::new())
+                    .or_insert_with(HashMap::new)
                     .insert(orig_variant_name.to_string(), variant_idx);
             } else {
                 // Insert the record.
@@ -479,10 +480,7 @@ impl SymCorpus {
 
             // Add implicit references, ones that were omitted by the F# declaration because only
             // one variant exists in the entire consolidated file.
-            let walk_records: Vec<_> = records
-                .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect();
+            let walk_records: Vec<_> = records.iter().map(|(k, v)| (k.clone(), *v)).collect();
             for (name, variant_idx) in walk_records {
                 let types = load_context.types.read().unwrap();
                 Self::extrapolate_file_record(
@@ -569,14 +567,14 @@ impl SymCorpus {
                     }
                 }
                 variants.push(tokens);
-                return variants.len() - 1;
+                variants.len() - 1
             }
             None => {
                 // XXX HashMap in stable Rust (1.84) doesn't offer to do a lookup using &str but
                 // insert the key as String if it is missing. The code opts to run the lookup again
                 // if the key is missing and the key+value pair needs inserting.
                 types.insert(type_name.to_string(), vec![tokens]);
-                return 0;
+                0
             }
         }
     }
@@ -659,7 +657,7 @@ impl SymCorpus {
 
         // Obtain tokens for the selected variant and check it is correctly specified.
         let variants = types.get(name).unwrap();
-        assert!(variants.len() > 0);
+        assert!(!variants.is_empty());
         if !is_explicit && variants.len() > 1 {
             return Err(crate::Error::new_parse(&format!(
                 "{}: Type '{}' is implicitly referenced by file '{}' but has multiple variants in the corpus",
@@ -706,7 +704,7 @@ impl SymCorpus {
                 return false;
             };
         }
-        return true;
+        true
     }
 
     fn is_export(name: &str) -> bool {
@@ -896,7 +894,7 @@ impl SymCorpus {
                 for token in tokens {
                     write!(writer, " {}", token.as_str()).map_io_err(path)?;
                 }
-                writeln!(writer, "").map_io_err(path)?;
+                writeln!(writer).map_io_err(path)?;
             }
         }
 
@@ -922,16 +920,15 @@ impl SymCorpus {
                     write!(writer, " {}", name).map_io_err(path)?;
                 }
             }
-            writeln!(writer, "").map_io_err(path)?;
+            writeln!(writer).map_io_err(path)?;
         }
         Ok(())
     }
 
     // TODO
     fn print_file_type(&self, file: &SymFile, name: &str, processed: &mut HashSet<String>) {
-        match processed.get(name) {
-            Some(_) => return,
-            None => {}
+        if processed.get(name).is_some() {
+            return;
         }
         processed.insert(name.to_string());
 
@@ -959,7 +956,7 @@ impl SymCorpus {
                             }
                         }
                     }
-                    println!("");
+                    println!();
                 }
                 None => {
                     panic!("Type '{}' has a missing declaration", name);
@@ -1041,9 +1038,8 @@ impl SymCorpus {
         changes: &Mutex<TypeChanges<'a>>,
     ) {
         // TODO Take into account different variants?
-        match processed.get(name) {
-            Some(_) => return,
-            None => {}
+        if processed.get(name).is_some() {
+            return;
         }
         processed.insert(name.to_string());
 
@@ -1153,7 +1149,7 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
     impl PushIndentExt for String {
         fn push_indent(&mut self, indent: usize) {
             for _ in 0..indent {
-                self.push_str("\t");
+                self.push('\t');
             }
         }
     }

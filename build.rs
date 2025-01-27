@@ -35,7 +35,7 @@ fn main() -> std::io::Result<()> {
                 "--output",
             ])
             .arg(&man_dst)
-            .arg(&man_src)
+            .arg(man_src)
             .status()
         {
             Ok(status) => status,
