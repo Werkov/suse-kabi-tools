@@ -28,42 +28,51 @@ macro_rules! assert_parse_err {
 #[test]
 fn read_empty_record() {
     // Check that empty records are rejected when reading a file.
-    let input = concat!(
-        "s#test struct test { }\n",
-        "\n",
-        "s#test2 struct test2 { }\n", //
-    );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:2: Expected a record name");
+    let result = syms.load_buffer(
+        Path::new("test.symtypes"),
+        concat!(
+            "s#test struct test { }\n",
+            "\n",
+            "s#test2 struct test2 { }\n", //
+        )
+        .as_bytes(),
+    );
+    assert_parse_err!(result, "test.symtypes:2: Expected a record name");
 }
 
 #[test]
 fn read_duplicate_type_record() {
     // Check that type records with duplicate names are rejected when reading a file.
-    let input = concat!(
-        "s#test struct test { int a ; }\n",
-        "s#test struct test { int b ; }\n", //
-    );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:2: Duplicate record 's#test'");
+    let result = syms.load_buffer(
+        Path::new("test.symtypes"),
+        concat!(
+            "s#test struct test { int a ; }\n",
+            "s#test struct test { int b ; }\n", //
+        )
+        .as_bytes(),
+    );
+    assert_parse_err!(result, "test.symtypes:2: Duplicate record 's#test'");
 }
 
 #[test]
 fn read_duplicate_file_record() {
     // Check that F# records with duplicate names are rejected when reading a consolidated file.
-    let input = concat!(
-        "bar int bar ( )\n",
-        "baz int baz ( )\n",
-        "F#test.symtypes bar\n",
-        "F#test.symtypes baz\n", //
-    );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
+    let result = syms.load_buffer(
+        Path::new("test.symtypes"),
+        concat!(
+            "bar int bar ( )\n",
+            "baz int baz ( )\n",
+            "F#test.symtypes bar\n",
+            "F#test.symtypes baz\n", //
+        )
+        .as_bytes(),
+    );
     assert_parse_err!(
         result,
-        "file.symtypes:4: Duplicate record 'F#test.symtypes'"
+        "test.symtypes:4: Duplicate record 'F#test.symtypes'"
     );
 }
 
@@ -71,38 +80,47 @@ fn read_duplicate_file_record() {
 fn read_invalid_file_record_ref() {
     // Check that an F# record referencing a type in form '<base_name>' is rejected if the type is
     // not known.
-    let input = concat!(
-        "F#test.symtypes bar\n", //
-    );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:1: Type 'bar' is not known");
+    let result = syms.load_buffer(
+        Path::new("test.symtypes"),
+        concat!(
+            "F#test.symtypes bar\n", //
+        )
+        .as_bytes(),
+    );
+    assert_parse_err!(result, "test.symtypes:1: Type 'bar' is not known");
 }
 
 #[test]
 fn read_invalid_file_record_ref2() {
     // Check that an F# record referencing a type in form '<base_name>@<variant_idx>' is rejected if
     // the base name is not known.
-    let input = concat!(
-        "F#test.symtypes bar@0\n", //
-    );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:1: Type 'bar@0' is not known");
+    let result = syms.load_buffer(
+        Path::new("test.symtypes"),
+        concat!(
+            "F#test.symtypes bar@0\n", //
+        )
+        .as_bytes(),
+    );
+    assert_parse_err!(result, "test.symtypes:1: Type 'bar@0' is not known");
 }
 
 #[test]
 fn read_invalid_file_record_ref3() {
     // Check that an F# record referencing a type in form '<base_name>@<variant_idx>' is rejected if
     // the variant index is not known.
-    let input = concat!(
-        "bar@0 int bar ( )\n",
-        "F#test.symtypes bar@0\n",  //
-        "F#test2.symtypes bar@1\n", //
-    );
     let mut syms = SymCorpus::new();
-    let result = syms.load_buffer(Path::new("file.symtypes"), input.as_bytes());
-    assert_parse_err!(result, "file.symtypes:3: Type 'bar@1' is not known");
+    let result = syms.load_buffer(
+        Path::new("test.symtypes"),
+        concat!(
+            "bar@0 int bar ( )\n",
+            "F#test.symtypes bar@0\n",
+            "F#test2.symtypes bar@1\n", //
+        )
+        .as_bytes(),
+    );
+    assert_parse_err!(result, "test.symtypes:3: Type 'bar@1' is not known");
 }
 
 #[test]
