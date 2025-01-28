@@ -306,15 +306,15 @@ where
     // Do the comparison.
     debug!("Compare '{}' and '{}'", paths[0], paths[1]);
 
-    let syms1 = {
+    let syms = {
         let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", paths[0]));
 
-        let mut syms1 = SymCorpus::new();
-        if let Err(err) = syms1.load(Path::new(&paths[0]), num_workers) {
+        let mut syms = SymCorpus::new();
+        if let Err(err) = syms.load(Path::new(&paths[0]), num_workers) {
             eprintln!("Failed to read symtypes from '{}': {}", paths[0], err);
             return Err(());
         }
-        syms1
+        syms
     };
 
     let syms2 = {
@@ -331,7 +331,7 @@ where
     {
         let _timing = Timing::new(do_timing, "Comparison");
 
-        syms1.compare_with(&syms2, num_workers);
+        syms.compare_with(&syms2, num_workers);
     }
 
     Ok(())
