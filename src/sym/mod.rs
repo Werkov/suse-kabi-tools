@@ -305,7 +305,7 @@ impl SymCorpus {
     /// The `path` should point to a `.symtypes` file name, indicating the origin of the data.
     pub fn load_buffer<R>(&mut self, path: &Path, reader: R) -> Result<(), crate::Error>
     where
-        R: io::Read,
+        R: Read,
     {
         let load_context = ParallelLoadContext {
             types: RwLock::new(&mut self.types),
@@ -325,7 +325,7 @@ impl SymCorpus {
         load_context: &ParallelLoadContext,
     ) -> Result<(), crate::Error>
     where
-        R: io::Read,
+        R: Read,
     {
         debug!("Loading '{}'", path.display());
 
@@ -504,7 +504,7 @@ impl SymCorpus {
     /// Reads data from a specified reader and splits its content into a lines vector.
     fn read_lines<R>(path: &Path, reader: R) -> Result<Vec<String>, crate::Error>
     where
-        R: io::Read,
+        R: Read,
     {
         let reader = BufReader::new(reader);
         let mut lines = Vec::new();
@@ -806,14 +806,15 @@ impl SymCorpus {
     /// The `path` should point to a `.symtypes` file name, indicating the target of the data.
     pub fn write_consolidated_buffer<W>(&self, path: &Path, writer: W) -> Result<(), crate::Error>
     where
-        W: io::Write,
+        W: Write,
     {
-        // Helper trait to map std::io::Error to crate::Error().
+        // Define a helper extension trait to map std::io::Error to crate::Error(), as
+        // write!(...).map_io_error().
         trait MapIOErr {
             fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
         }
 
-        impl MapIOErr for Result<(), std::io::Error> {
+        impl MapIOErr for Result<(), io::Error> {
             fn map_io_err(self, path: &Path) -> Result<(), crate::Error> {
                 self.map_err(|err| {
                     crate::Error::new_io(
