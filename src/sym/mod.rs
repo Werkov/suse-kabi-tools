@@ -1084,23 +1084,15 @@ impl SymCorpus {
     {
         let mut writer = BufWriter::new(writer);
 
-        // Check for symbols in A and not in B.
-        for name in self.exports.keys() {
-            if !other.exports.contains_key(name) {
-                writeln!(writer, "Export '{}' is present in A but not in B", name)
-                    .map_io_err(path)?;
-            }
-        }
-
-        // Check for symbols in B and not in A.
-        for other_name in other.exports.keys() {
-            if !self.exports.contains_key(other_name) {
-                writeln!(
-                    writer,
-                    "Export '{}' is present in B but not in A",
-                    other_name
-                )
-                .map_io_err(path)?;
+        // Check for symbols in self but not in other, and vice versa.
+        for (exports_a, exports_b, change) in [
+            (&self.exports, &other.exports, "removed"),
+            (&other.exports, &self.exports, "added"),
+        ] {
+            for name in exports_a.keys() {
+                if !exports_b.contains_key(name) {
+                    writeln!(writer, "Export '{}' has been {}", name, change).map_io_err(path)?;
+                }
             }
         }
 
@@ -1132,7 +1124,7 @@ impl SymCorpus {
                                 &changes,
                             );
                         }
-                        None => {} // Export is present in A but not in B, already handled above.
+                        None => {} // Export is in self but not in other, already handled above.
                     }
                 });
             }
