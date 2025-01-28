@@ -158,6 +158,22 @@ struct ParallelLoadContext<'a> {
     files: Mutex<&'a mut SymFiles>,
 }
 
+/// A helper extension trait to map std::io::Error to crate::Error(), as write!(...).map_io_error().
+trait MapIOErr {
+    fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
+}
+
+impl MapIOErr for Result<(), io::Error> {
+    fn map_io_err(self, path: &Path) -> Result<(), crate::Error> {
+        self.map_err(|err| {
+            crate::Error::new_io(
+                &format!("Failed to write data to file '{}'", path.display()),
+                err,
+            )
+        })
+    }
+}
+
 impl SymCorpus {
     /// Creates a new empty corpus.
     pub fn new() -> Self {
@@ -808,23 +824,6 @@ impl SymCorpus {
     where
         W: Write,
     {
-        // Define a helper extension trait to map std::io::Error to crate::Error(), as
-        // write!(...).map_io_error().
-        trait MapIOErr {
-            fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
-        }
-
-        impl MapIOErr for Result<(), io::Error> {
-            fn map_io_err(self, path: &Path) -> Result<(), crate::Error> {
-                self.map_err(|err| {
-                    crate::Error::new_io(
-                        &format!("Failed to write data to file '{}'", path.display()),
-                        err,
-                    )
-                })
-            }
-        }
-
         let mut writer = BufWriter::new(writer);
 
         // Initialize output data. Variable output_types records all output symbols, file_types
@@ -1073,7 +1072,38 @@ impl SymCorpus {
         }
     }
 
-    pub fn compare_with(&self, other: &SymCorpus, num_workers: i32) {
+    pub fn compare_with<W>(
+        &self,
+        other: &SymCorpus,
+        path: &Path,
+        writer: W,
+        num_workers: i32,
+    ) -> Result<(), crate::Error>
+    where
+        W: Write,
+    {
+        let mut writer = BufWriter::new(writer);
+
+        // Check for symbols in A and not in B.
+        for name in self.exports.keys() {
+            if !other.exports.contains_key(name) {
+                writeln!(writer, "Export '{}' is present in A but not in B", name)
+                    .map_io_err(path)?;
+            }
+        }
+
+        // Check for symbols in B and not in A.
+        for other_name in other.exports.keys() {
+            if !self.exports.contains_key(other_name) {
+                writeln!(
+                    writer,
+                    "Export '{}' is present in B but not in A",
+                    other_name
+                )
+                .map_io_err(path)?;
+            }
+        }
+
         let works: Vec<_> = self.exports.iter().collect();
         let next_work_idx = AtomicUsize::new(0);
 
@@ -1102,33 +1132,23 @@ impl SymCorpus {
                                 &changes,
                             );
                         }
-                        None => {
-                            println!("Export '{}' is present in A but not in B", name);
-                        }
+                        None => {} // Export is present in A but not in B, already handled above.
                     }
                 });
             }
         });
 
-        // Check for symbols in B and not in A.
-        for other_name in other.exports.keys() {
-            match self.exports.get(other_name) {
-                Some(_file_idx) => {}
-                None => {
-                    println!("Export '{}' is present in B but not in A", other_name);
+        let changes = changes.into_inner().unwrap();
+        for (name, variants) in changes {
+            for (tokens, other_tokens) in variants {
+                writeln!(writer, "{}", name).map_io_err(path)?;
+                for line in get_type_diff(tokens, other_tokens) {
+                    writeln!(writer, "{}", line).map_io_err(path)?;
                 }
             }
         }
 
-        let changes = changes.into_inner().unwrap();
-        for (name, variants) in changes {
-            for (tokens, other_tokens) in variants {
-                println!("{}", name);
-                for line in get_type_diff(tokens, other_tokens) {
-                    println!("{}", line);
-                }
-            }
-        }
+        Ok(())
     }
 }
 

@@ -5,7 +5,7 @@ use ksymtypes::sym::SymCorpus;
 use ksymtypes::{debug, init_debug_level};
 use std::path::Path;
 use std::time::Instant;
-use std::{env, process};
+use std::{env, io, process};
 
 /// A type to measure elapsed time for some operation.
 ///
@@ -331,7 +331,13 @@ where
     {
         let _timing = Timing::new(do_timing, "Comparison");
 
-        syms.compare_with(&syms2, num_workers);
+        if let Err(err) = syms.compare_with(&syms2, Path::new("-"), io::stdout(), num_workers) {
+            eprintln!(
+                "Failed to compare symtypes from '{}' and '{}': {}",
+                paths[0], paths[1], err
+            );
+            return Err(());
+        }
     }
 
     Ok(())
