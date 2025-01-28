@@ -353,7 +353,7 @@ fn main() {
     let mut maybe_command = None;
     let mut do_timing = false;
     let mut debug_level = 0;
-    while let Some(arg) = args.next() {
+    for arg in args.by_ref() {
         if arg == "-d" || arg == "--debug" {
             debug_level += 1;
             continue;

@@ -489,7 +489,7 @@ impl SymCorpus {
                     &name,
                     variant_idx,
                     true,
-                    &*types,
+                    *types,
                     &mut records,
                 )?;
             }
@@ -530,13 +530,10 @@ impl SymCorpus {
         let mut tokens = Vec::new();
         for word in words {
             let mut is_typeref = false;
-            match word.chars().nth(1) {
-                Some(ch) => {
-                    if ch == '#' {
-                        is_typeref = true;
-                    }
+            if let Some(ch) = word.chars().nth(1) {
+                if ch == '#' {
+                    is_typeref = true;
                 }
-                None => {}
             }
             tokens.push(if is_typeref {
                 Token::new_typeref(word)
@@ -844,7 +841,7 @@ impl SymCorpus {
 
             // Collect sorted exports in the file which are the roots for consolidation.
             let mut exports = Vec::new();
-            for (name, _) in &symfile.records {
+            for name in symfile.records.keys() {
                 if Self::is_export(name) {
                     exports.push(name.as_str());
                 }
@@ -861,8 +858,8 @@ impl SymCorpus {
 
         // Go through all files and their output types. Check if a given type has only one variant
         // in the output and mark it as such.
-        for i in 0..file_types.len() {
-            for (name, remap_idx) in &mut file_types[i] {
+        for file_types_item in &mut file_types {
+            for (name, remap_idx) in file_types_item {
                 let remap = output_types.get(name).unwrap();
                 if remap.len() == 1 {
                     *remap_idx = usize::MAX;
@@ -974,13 +971,10 @@ impl SymCorpus {
 
     pub fn print_type(&self, name: &str) {
         for file in &self.files {
-            match file.records.get(name) {
-                Some(_variant_idx) => {
-                    println!("Found type '{}' in '{}':", name, file.path.display());
-                    let mut processed = HashSet::new();
-                    self.print_file_type(&file, name, &mut processed);
-                }
-                None => {}
+            if file.records.contains_key(name) {
+                println!("Found type '{}' in '{}':", name, file.path.display());
+                let mut processed = HashSet::new();
+                self.print_file_type(file, name, &mut processed);
             }
         }
     }
@@ -1116,7 +1110,7 @@ impl SymCorpus {
         });
 
         // Check for symbols in B and not in A.
-        for (other_name, _other_file_idx) in &other.exports {
+        for other_name in other.exports.keys() {
             match self.exports.get(other_name) {
                 Some(_file_idx) => {}
                 None => {
@@ -1156,22 +1150,17 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
 
     // Iterate over all tokens and produce the formatted output.
     let mut res = Vec::new();
-    let mut indent = 0;
+    let mut indent: usize = 0;
 
     let mut line = String::new();
     for token in tokens {
         // Handle the closing bracket early, it ends any prior line and reduces indentation.
-        match token.as_str() {
-            "}" => {
-                if !line.is_empty() {
-                    res.push(line);
-                }
-                if indent > 0 {
-                    indent -= 1;
-                }
-                line = String::new();
+        if token.as_str() == "}" {
+            if !line.is_empty() {
+                res.push(line);
             }
-            _ => {}
+            indent = indent.saturating_sub(1);
+            line = String::new();
         }
 
         // Insert any newline indentation.
@@ -1188,7 +1177,7 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
                 }
                 line.push('{');
                 res.push(line);
-                indent += 1;
+                indent = indent.saturating_add(1);
 
                 line = String::new();
             }
