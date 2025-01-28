@@ -247,3 +247,101 @@ fn read_write_differing_struct() {
         )
     );
 }
+
+#[test]
+fn compare_identical() {
+    // Check that comparing two identical corpuses shows no differences.
+    let mut syms = SymCorpus::new();
+    let result = syms.load_buffer(
+        Path::new("a/test.symtypes"),
+        concat!(
+            "bar int bar ( )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut syms2 = SymCorpus::new();
+    let result = syms2.load_buffer(
+        Path::new("b/test.symtypes"),
+        concat!(
+            "bar int bar ( )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut out = Vec::new();
+    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "", //
+        )
+    );
+}
+
+#[test]
+fn compare_added_export() {
+    // Check that comparing two corpuses reports any newly added export.
+    let mut syms = SymCorpus::new();
+    let result = syms.load_buffer(
+        Path::new("a/test.symtypes"),
+        concat!(
+            "bar int bar ( )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut syms2 = SymCorpus::new();
+    let result = syms2.load_buffer(
+        Path::new("b/test.symtypes"),
+        concat!(
+            "bar int bar ( )\n",
+            "baz int baz ( )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut out = Vec::new();
+    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "Export 'baz' has been added\n", //
+        )
+    );
+}
+
+#[test]
+fn compare_removed_export() {
+    // Check that comparing two corpuses reports any removed export.
+    let mut syms = SymCorpus::new();
+    let result = syms.load_buffer(
+        Path::new("a/test.symtypes"),
+        concat!(
+            "bar int bar ( )\n", //
+            "baz int baz ( )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut syms2 = SymCorpus::new();
+    let result = syms2.load_buffer(
+        Path::new("b/test.symtypes"),
+        concat!(
+            "baz int baz ( )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut out = Vec::new();
+    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "Export 'bar' has been removed\n", //
+        )
+    );
+}
