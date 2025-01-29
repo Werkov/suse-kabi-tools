@@ -332,7 +332,7 @@ impl SymCorpus {
 
         // Map each variant name/index that the type has in this specific .symtypes file to one
         // which it got assigned in the entire loaded corpus.
-        let mut remap = HashMap::new();
+        let mut remap: HashMap<String, HashMap<String, usize>> = HashMap::new();
 
         // Read all content from the file.
         let lines = Self::read_lines(path, reader)?;
@@ -416,7 +416,7 @@ impl SymCorpus {
                 // Record a mapping from the original variant name/index to the new one.
                 remap
                     .entry(base_name.to_string())
-                    .or_insert_with(HashMap::new)
+                    .or_default()
                     .insert(orig_variant_name.to_string(), variant_idx);
             } else {
                 // Insert the record.
@@ -1029,7 +1029,7 @@ impl SymCorpus {
             let mut changes = changes.lock().unwrap();
             changes
                 .entry((name, tokens, other_tokens))
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(export);
         }
     }
