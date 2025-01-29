@@ -40,7 +40,10 @@ fn compare_cmd() {
     assert_eq!(
         result.stdout,
         concat!(
-            "foo\n",
+            "The following '1' exports are different:\n",
+            " foo\n",
+            "\n",
+            "because of a changed 'foo':\n",
             "-void foo ( int a )\n",
             "+void foo ( long a )\n", //
         )
@@ -75,7 +78,10 @@ fn compare_cmd_dash_dash() {
     assert_eq!(
         result.stdout,
         concat!(
-            "foo\n",
+            "The following '1' exports are different:\n",
+            " foo\n",
+            "\n",
+            "because of a changed 'foo':\n",
             "-void foo ( int a )\n",
             "+void foo ( long a )\n", //
         )

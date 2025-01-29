@@ -18,7 +18,7 @@ mod tests;
 mod tests_format;
 
 /// A token used in the description of a type.
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Hash)]
 enum Token {
     TypeRef(String),
     Atom(String),
@@ -149,8 +149,6 @@ pub struct SymCorpus {
     exports: Exports,
     files: SymFiles,
 }
-
-type TypeChanges<'a> = HashMap<&'a str, Vec<(&'a Tokens, &'a Tokens)>>;
 
 struct ParallelLoadContext<'a> {
     types: RwLock<&'a mut Types>,
@@ -997,41 +995,16 @@ impl SymCorpus {
         }
     }
 
-    fn record_type_change<'a>(
-        name: &'a str,
-        tokens: &'a Tokens,
-        other_tokens: &'a Tokens,
-        changes: &Mutex<TypeChanges<'a>>,
-    ) {
-        let mut changes = changes.lock().unwrap();
-        match changes.entry(name) {
-            Occupied(mut variants_entry) => {
-                let variants = variants_entry.get_mut();
-                for (tokens2, other_tokens2) in &*variants {
-                    if Self::are_tokens_eq(tokens, tokens2)
-                        && Self::are_tokens_eq(other_tokens, other_tokens2)
-                    {
-                        return;
-                    }
-                }
-                variants.push((tokens, other_tokens));
-            }
-            Vacant(variants_entry) => {
-                variants_entry.insert(vec![(tokens, other_tokens)]);
-            }
-        }
-    }
-
     fn compare_types<'a>(
         &'a self,
         other: &'a SymCorpus,
         file: &SymFile,
         other_file: &SymFile,
         name: &'a str,
+        export: &'a str,
         processed: &mut HashSet<String>,
-        changes: &Mutex<TypeChanges<'a>>,
+        changes: &Mutex<HashMap<(&'a str, &'a Tokens, &'a Tokens), Vec<&'a str>>>,
     ) {
-        // TODO Take into account different variants?
         if processed.get(name).is_some() {
             return;
         }
@@ -1054,6 +1027,7 @@ impl SymCorpus {
                             file,
                             other_file,
                             ref_name.as_str(),
+                            export,
                             processed,
                             changes,
                         );
@@ -1067,8 +1041,11 @@ impl SymCorpus {
             };
         }
         if !is_equal {
-            // TODO
-            Self::record_type_change(name, tokens, other_tokens, changes);
+            let mut changes = changes.lock().unwrap();
+            changes
+                .entry((name, tokens, other_tokens))
+                .or_insert_with(Vec::new)
+                .push(export);
         }
     }
 
@@ -1099,7 +1076,7 @@ impl SymCorpus {
         let works: Vec<_> = self.exports.iter().collect();
         let next_work_idx = AtomicUsize::new(0);
 
-        let changes = Mutex::new(TypeChanges::new());
+        let changes = Mutex::new(HashMap::new());
 
         thread::scope(|s| {
             for _ in 0..num_workers {
@@ -1120,6 +1097,7 @@ impl SymCorpus {
                                 file,
                                 other_file,
                                 name,
+                                name,
                                 &mut processed,
                                 &changes,
                             );
@@ -1131,12 +1109,30 @@ impl SymCorpus {
         });
 
         let changes = changes.into_inner().unwrap();
-        for (name, variants) in changes {
-            for (tokens, other_tokens) in variants {
-                writeln!(writer, "{}", name).map_io_err(path)?;
-                for line in get_type_diff(tokens, other_tokens) {
-                    writeln!(writer, "{}", line).map_io_err(path)?;
-                }
+        let mut add_separator = false;
+        for ((name, tokens, other_tokens), mut exports) in changes {
+            writeln!(
+                writer,
+                "The following '{}' exports are different:",
+                exports.len()
+            )
+            .map_io_err(path)?;
+            exports.sort();
+            for export in exports {
+                writeln!(writer, " {}", export).map_io_err(path)?;
+            }
+            writeln!(writer).map_io_err(path)?;
+
+            writeln!(writer, "because of a changed '{}':", name).map_io_err(path)?;
+            for line in get_type_diff(tokens, other_tokens) {
+                writeln!(writer, "{}", line).map_io_err(path)?;
+            }
+
+            // Add an empty line to separate individual changes.
+            if add_separator {
+                writeln!(writer).map_io_err(path)?;
+            } else {
+                add_separator = true;
             }
         }
 
