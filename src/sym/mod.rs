@@ -1109,9 +1109,7 @@ impl SymCorpus {
             writeln!(writer).map_io_err(path)?;
 
             writeln!(writer, "because of a changed '{}':", name).map_io_err(path)?;
-            for line in get_type_diff(tokens, other_tokens) {
-                writeln!(writer, "{}", line).map_io_err(path)?;
-            }
+            write_type_diff(tokens, other_tokens, path, writer.by_ref())?;
 
             // Add an empty line to separate individual changes.
             if add_separator {
@@ -1206,10 +1204,17 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
     res
 }
 
-/// Formats a unified diff between two supposedly different types and returns them as a [`Vec`] of
-/// [`String`] lines.
-fn get_type_diff(tokens: &Tokens, other_tokens: &Tokens) -> Vec<String> {
+/// Formats a unified diff between two supposedly different types and writes the output to `writer`.
+fn write_type_diff<W>(
+    tokens: &Tokens,
+    other_tokens: &Tokens,
+    path: &Path,
+    writer: W,
+) -> Result<(), crate::Error>
+where
+    W: Write,
+{
     let pretty = pretty_format_type(tokens);
     let other_pretty = pretty_format_type(other_tokens);
-    crate::diff::unified(&pretty, &other_pretty)
+    crate::diff::unified(&pretty, &other_pretty, path, writer)
 }

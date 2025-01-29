@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use super::*;
+use crate::assert_ok;
+use std::path::Path;
 
 #[test]
 fn format_typedef() {
@@ -201,7 +203,8 @@ fn format_typeref() {
 #[test]
 fn format_removal() {
     // TODO Add test description.
-    let diff = get_type_diff(
+    let mut out = Vec::new();
+    let result = write_type_diff(
         &vec![
             Token::new_atom("struct"),
             Token::new_atom("test"),
@@ -223,14 +226,17 @@ fn format_removal() {
             Token::new_atom(";"),
             Token::new_atom("}"),
         ],
+        Path::new("-"),
+        &mut out,
     );
+    assert_ok!(result);
     assert_eq!(
-        diff,
-        crate::string_vec!(
-            " struct test {",
-            " \tint ivalue1;",
-            "-\tint ivalue2;",
-            " }" //
+        String::from_utf8(out).unwrap(),
+        concat!(
+            " struct test {\n",
+            " \tint ivalue1;\n",
+            "-\tint ivalue2;\n",
+            " }\n" //
         )
     );
 }
@@ -238,7 +244,8 @@ fn format_removal() {
 #[test]
 fn format_addition() {
     // TODO Add test description.
-    let diff = get_type_diff(
+    let mut out = Vec::new();
+    let result = write_type_diff(
         &vec![
             Token::new_atom("struct"),
             Token::new_atom("test"),
@@ -260,14 +267,17 @@ fn format_addition() {
             Token::new_atom(";"),
             Token::new_atom("}"),
         ],
+        Path::new("-"),
+        &mut out,
     );
+    assert_ok!(result);
     assert_eq!(
-        diff,
-        crate::string_vec!(
-            " struct test {",
-            " \tint ivalue1;",
-            "+\tint ivalue2;",
-            " }" //
+        String::from_utf8(out).unwrap(),
+        concat!(
+            " struct test {\n",
+            " \tint ivalue1;\n",
+            "+\tint ivalue2;\n",
+            " }\n" //
         )
     );
 }
@@ -275,7 +285,8 @@ fn format_addition() {
 #[test]
 fn format_modification() {
     // TODO Add test description.
-    let diff = get_type_diff(
+    let mut out = Vec::new();
+    let result = write_type_diff(
         &vec![
             Token::new_atom("struct"),
             Token::new_atom("test"),
@@ -294,14 +305,17 @@ fn format_modification() {
             Token::new_atom(";"),
             Token::new_atom("}"),
         ],
+        Path::new("-"),
+        &mut out,
     );
+    assert_ok!(result);
     assert_eq!(
-        diff,
-        crate::string_vec!(
-            " struct test {",
-            "-\tint ivalue1;",
-            "+\tint ivalue2;",
-            " }" //
+        String::from_utf8(out).unwrap(),
+        concat!(
+            " struct test {\n",
+            "-\tint ivalue1;\n",
+            "+\tint ivalue2;\n",
+            " }\n" //
         )
     );
 }

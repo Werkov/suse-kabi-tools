@@ -5,8 +5,11 @@
 // Myers, E.W. An O(ND) difference algorithm and its variations. Algorithmica 1, 251--266 (1986).
 // https://doi.org/10.1007/BF01840446
 
+use crate::MapIOErr;
 use std::fmt::Display;
+use std::io::{prelude::*, BufWriter};
 use std::ops::{Index, IndexMut};
+use std::path::Path;
 
 #[cfg(test)]
 mod tests;
@@ -124,14 +127,19 @@ fn myers<T: AsRef<str> + PartialEq>(a: &[T], b: &[T]) -> EditScript {
     unreachable!();
 }
 
-pub fn unified<T: AsRef<str> + PartialEq + Display>(a: &[T], b: &[T]) -> Vec<String> {
-    let mut output = Vec::new();
+pub fn unified<T, W>(a: &[T], b: &[T], path: &Path, writer: W) -> Result<(), crate::Error>
+where
+    T: AsRef<str> + PartialEq + Display,
+    W: Write,
+{
+    let mut writer = BufWriter::new(writer);
+
     for edit in myers(a, b) {
         match edit {
-            Edit::KeepA(index_a) => output.push(format!(" {}", a[index_a])),
-            Edit::RemoveA(index_a) => output.push(format!("-{}", a[index_a])),
-            Edit::InsertB(index_b) => output.push(format!("+{}", b[index_b])),
+            Edit::KeepA(index_a) => writeln!(writer, " {}", a[index_a]).map_io_err(path)?,
+            Edit::RemoveA(index_a) => writeln!(writer, "-{}", a[index_a]).map_io_err(path)?,
+            Edit::InsertB(index_b) => writeln!(writer, "+{}", b[index_b]).map_io_err(path)?,
         }
     }
-    output
+    Ok(())
 }
