@@ -61,7 +61,10 @@ struct DiagonalState {
 
 /// Compares `a` with `b` and returns an edit script describing how to transform the former to the
 /// latter.
-fn myers<T: AsRef<str> + PartialEq>(a: &[T], b: &[T]) -> EditScript {
+fn myers<T>(a: &[T], b: &[T]) -> EditScript
+where
+    T: AsRef<str> + PartialEq,
+{
     let max = a.len() + b.len();
     let mut v = IVec(vec![
         DiagonalState {

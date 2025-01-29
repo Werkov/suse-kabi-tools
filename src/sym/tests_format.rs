@@ -18,8 +18,8 @@ fn format_typedef() {
     assert_eq!(
         pretty,
         crate::string_vec!(
-                "typedef unsigned long long u64" //
-            )
+            "typedef unsigned long long u64" //
+        )
     );
 }
 
@@ -108,8 +108,8 @@ fn format_enum_constant() {
     assert_eq!(
         pretty,
         crate::string_vec!(
-                "7" //
-            )
+            "7" //
+        )
     );
 }
 
