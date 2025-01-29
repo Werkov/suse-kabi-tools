@@ -76,6 +76,17 @@ macro_rules! debug {
 
 #[cfg(test)]
 #[macro_export]
+macro_rules! assert_ok {
+    ($result:expr) => {
+        match $result {
+            Ok(()) => {}
+            result => panic!("assertion failed: {:?} is not of type Ok(())", result),
+        }
+    };
+}
+
+#[cfg(test)]
+#[macro_export]
 macro_rules! string_vec {
       ($($x:expr),*) => (vec![$($x.to_string()),*]);
 }

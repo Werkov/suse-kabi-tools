@@ -2,16 +2,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use super::*;
+use crate::assert_ok;
 use std::path::Path;
-
-macro_rules! assert_ok {
-    ($result:expr) => {
-        match $result {
-            Ok(()) => {}
-            result => panic!("assertion failed: {:?} is not of type Ok(())", result),
-        }
-    };
-}
 
 macro_rules! assert_parse_err {
     ($result:expr, $exp_desc:expr) => {
