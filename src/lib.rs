@@ -1,6 +1,8 @@
 // Copyright (C) 2024 SUSE LLC <petr.pavlu@suse.com>
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use std::path::Path;
+
 pub mod diff;
 pub mod sym;
 
@@ -37,6 +39,22 @@ impl std::fmt::Display for Error {
             }
             Self::Parse(desc) => write!(f, "{}", desc),
         }
+    }
+}
+
+/// A helper extension trait to map std::io::Error to crate::Error(), as write!(...).map_io_error().
+trait MapIOErr {
+    fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
+}
+
+impl MapIOErr for Result<(), std::io::Error> {
+    fn map_io_err(self, path: &Path) -> Result<(), crate::Error> {
+        self.map_err(|err| {
+            crate::Error::new_io(
+                &format!("Failed to write data to file '{}'", path.display()),
+                err,
+            )
+        })
     }
 }
 

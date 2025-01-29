@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use crate::debug;
+use crate::MapIOErr;
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -154,22 +155,6 @@ struct ParallelLoadContext<'a> {
     types: RwLock<&'a mut Types>,
     exports: Mutex<&'a mut Exports>,
     files: Mutex<&'a mut SymFiles>,
-}
-
-/// A helper extension trait to map std::io::Error to crate::Error(), as write!(...).map_io_error().
-trait MapIOErr {
-    fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
-}
-
-impl MapIOErr for Result<(), io::Error> {
-    fn map_io_err(self, path: &Path) -> Result<(), crate::Error> {
-        self.map_err(|err| {
-            crate::Error::new_io(
-                &format!("Failed to write data to file '{}'", path.display()),
-                err,
-            )
-        })
-    }
 }
 
 impl SymCorpus {
