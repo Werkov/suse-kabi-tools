@@ -44,6 +44,7 @@ fn compare_cmd() {
             " foo\n",
             "\n",
             "because of a changed 'foo':\n",
+            "@@ -1,1 +1,1 @@\n",
             "-void foo ( int a )\n",
             "+void foo ( long a )\n", //
         )
@@ -82,6 +83,7 @@ fn compare_cmd_dash_dash() {
             " foo\n",
             "\n",
             "because of a changed 'foo':\n",
+            "@@ -1,1 +1,1 @@\n",
             "-void foo ( int a )\n",
             "+void foo ( long a )\n", //
         )

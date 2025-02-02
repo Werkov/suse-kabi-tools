@@ -130,6 +130,30 @@ where
     unreachable!();
 }
 
+fn write_hunk<W>(
+    hunk_pos_a: usize,
+    hunk_len_a: usize,
+    hunk_pos_b: usize,
+    hunk_len_b: usize,
+    hunk_data: &[String],
+    path: &Path,
+    writer: &mut BufWriter<W>,
+) -> Result<(), crate::Error>
+where
+    W: Write,
+{
+    writeln!(
+        writer,
+        "@@ -{},{} +{},{} @@",
+        hunk_pos_a, hunk_len_a, hunk_pos_b, hunk_len_b
+    )
+    .map_io_err(path)?;
+    for hunk_str in hunk_data {
+        writeln!(writer, "{}", hunk_str).map_io_err(path)?;
+    }
+    Ok(())
+}
+
 pub fn unified<T, W>(a: &[T], b: &[T], path: &Path, writer: W) -> Result<(), crate::Error>
 where
     T: AsRef<str> + PartialEq + Display,
@@ -137,12 +161,108 @@ where
 {
     let mut writer = BufWriter::new(writer);
 
-    for edit in myers(a, b) {
+    // Diff the two inputs and calculate the edit script.
+    let edit_script = myers(a, b);
+
+    // Turn the edit script into hunks in the unified format.
+    const CONTEXT_SIZE: usize = 3;
+    let (mut context_begin, mut context_end) = (0, 0);
+    let (mut pos_a, mut pos_b) = (1, 1);
+    let (mut hunk_pos_a, mut hunk_len_a, mut hunk_pos_b, mut hunk_len_b) = (0, 0, 0, 0);
+    let mut hunk_data = Vec::new();
+
+    for edit in edit_script {
         match edit {
-            Edit::KeepA(index_a) => writeln!(writer, " {}", a[index_a]).map_io_err(path)?,
-            Edit::RemoveA(index_a) => writeln!(writer, "-{}", a[index_a]).map_io_err(path)?,
-            Edit::InsertB(index_b) => writeln!(writer, "+{}", b[index_b]).map_io_err(path)?,
+            Edit::KeepA(index_a) => {
+                // Start recording a new context, or extend the current one.
+                if context_begin == context_end {
+                    context_begin = index_a;
+                    context_end = context_begin + 1;
+                } else {
+                    context_end += 1;
+                }
+
+                // Update the positions.
+                pos_a += 1;
+                pos_b += 1;
+
+                // If handling a hunk, check if it should be closed off.
+                if !hunk_data.is_empty() && context_end - context_begin >= 2 * CONTEXT_SIZE {
+                    for i in context_begin..context_begin + CONTEXT_SIZE {
+                        hunk_data.push(format!(" {}", a[i]));
+                    }
+                    hunk_len_a += context_end - context_begin;
+                    hunk_len_b += context_end - context_begin;
+                    context_begin = context_end - CONTEXT_SIZE;
+                    write_hunk(
+                        hunk_pos_a,
+                        hunk_len_a,
+                        hunk_pos_b,
+                        hunk_len_b,
+                        &hunk_data,
+                        path,
+                        &mut writer,
+                    )?;
+                    hunk_data.clear();
+                }
+            }
+
+            Edit::RemoveA(_) | Edit::InsertB(_) => {
+                // Open a new hunk if not already handling one.
+                if hunk_data.is_empty() {
+                    if context_end - context_begin > CONTEXT_SIZE {
+                        context_begin = context_end - CONTEXT_SIZE;
+                    }
+                    hunk_pos_a = pos_a - (context_end - context_begin);
+                    hunk_len_a = 0;
+                    hunk_pos_b = pos_b - (context_end - context_begin);
+                    hunk_len_b = 0;
+                }
+
+                // Update the positions.
+                if let Edit::RemoveA(_) = edit {
+                    pos_a += 1;
+                } else {
+                    pos_b += 1;
+                }
+
+                // Add any accumulated context.
+                for i in context_begin..context_end {
+                    hunk_data.push(format!(" {}", a[i]));
+                }
+                hunk_len_a += context_end - context_begin;
+                hunk_len_b += context_end - context_begin;
+                context_begin = context_end;
+
+                // Record the removed/added string.
+                if let Edit::RemoveA(index_a) = edit {
+                    hunk_data.push(format!("-{}", a[index_a]));
+                    hunk_len_a += 1;
+                } else if let Edit::InsertB(index_b) = edit {
+                    hunk_data.push(format!("+{}", b[index_b]));
+                    hunk_len_b += 1;
+                }
+            }
         }
     }
+
+    // Close off the last hunk, if one is open.
+    if !hunk_data.is_empty() {
+        for i in context_begin..context_end {
+            hunk_data.push(format!(" {}", a[i]));
+        }
+        hunk_len_a += context_end - context_begin;
+        hunk_len_b += context_end - context_begin;
+        write_hunk(
+            hunk_pos_a,
+            hunk_len_a,
+            hunk_pos_b,
+            hunk_len_b,
+            &hunk_data,
+            path,
+            &mut writer,
+        )?;
+    }
+
     Ok(())
 }

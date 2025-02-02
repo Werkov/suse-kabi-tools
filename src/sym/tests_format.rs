@@ -233,6 +233,7 @@ fn format_removal() {
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
+            "@@ -1,4 +1,3 @@\n",
             " struct test {\n",
             " \tint ivalue1;\n",
             "-\tint ivalue2;\n",
@@ -274,6 +275,7 @@ fn format_addition() {
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
+            "@@ -1,3 +1,4 @@\n",
             " struct test {\n",
             " \tint ivalue1;\n",
             "+\tint ivalue2;\n",
@@ -312,6 +314,7 @@ fn format_modification() {
     assert_eq!(
         String::from_utf8(out).unwrap(),
         concat!(
+            "@@ -1,3 +1,3 @@\n",
             " struct test {\n",
             "-\tint ivalue1;\n",
             "+\tint ivalue2;\n",
