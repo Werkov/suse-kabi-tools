@@ -187,13 +187,13 @@ where
                 pos_b += 1;
 
                 // If handling a hunk, check if it should be closed off.
-                if !hunk_data.is_empty() && context_end - context_begin >= 2 * CONTEXT_SIZE {
+                if !hunk_data.is_empty() && context_end - context_begin > 2 * CONTEXT_SIZE {
                     for i in context_begin..context_begin + CONTEXT_SIZE {
                         hunk_data.push(format!(" {}", a[i]));
                     }
-                    hunk_len_a += context_end - context_begin;
-                    hunk_len_b += context_end - context_begin;
-                    context_begin = context_end - CONTEXT_SIZE;
+                    hunk_len_a += CONTEXT_SIZE;
+                    hunk_len_b += CONTEXT_SIZE;
+                    context_begin += CONTEXT_SIZE;
                     write_hunk(
                         hunk_pos_a,
                         hunk_len_a,
@@ -248,6 +248,9 @@ where
 
     // Close off the last hunk, if one is open.
     if !hunk_data.is_empty() {
+        if context_end - context_begin > CONTEXT_SIZE {
+            context_end = context_begin + CONTEXT_SIZE;
+        }
         for i in context_begin..context_end {
             hunk_data.push(format!(" {}", a[i]));
         }
