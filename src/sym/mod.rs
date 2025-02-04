@@ -905,63 +905,6 @@ impl SymCorpus {
         Ok(())
     }
 
-    // TODO
-    fn print_file_type(&self, file: &SymFile, name: &str, processed: &mut HashSet<String>) {
-        if processed.get(name).is_some() {
-            return;
-        }
-        processed.insert(name.to_string());
-
-        match file.records.get(name) {
-            Some(&variant_idx) => match self.types.get(name) {
-                Some(variants) => {
-                    let tokens = &variants[variant_idx];
-                    for token in tokens {
-                        match token {
-                            Token::TypeRef(ref_name) => {
-                                self.print_file_type(file, ref_name, processed);
-                            }
-                            Token::Atom(_word) => {}
-                        }
-                    }
-
-                    print!("{}", name);
-                    for token in tokens {
-                        match token {
-                            Token::TypeRef(ref_name) => {
-                                print!(" {}", ref_name);
-                            }
-                            Token::Atom(word) => {
-                                print!(" {}", word);
-                            }
-                        }
-                    }
-                    println!();
-                }
-                None => {
-                    panic!("Type '{}' has a missing declaration", name);
-                }
-            },
-            None => {
-                panic!(
-                    "Type '{}' is not known in file '{}'",
-                    name,
-                    file.path.display()
-                )
-            }
-        }
-    }
-
-    pub fn print_type(&self, name: &str) {
-        for file in &self.files {
-            if file.records.contains_key(name) {
-                println!("Found type '{}' in '{}':", name, file.path.display());
-                let mut processed = HashSet::new();
-                self.print_file_type(file, name, &mut processed);
-            }
-        }
-    }
-
     fn get_type_tokens<'a>(symtypes: &'a SymCorpus, file: &SymFile, name: &str) -> &'a Tokens {
         match file.records.get(name) {
             Some(&variant_idx) => match symtypes.types.get(name) {
