@@ -243,6 +243,259 @@ fn format_removal() {
 }
 
 #[test]
+fn format_removal_top() {
+    // Check the diff format when data is removed at the top.
+    let mut out = Vec::new();
+    let result = write_type_diff(
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue1"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue5"),
+            Token::new_atom(";"),
+        ],
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue5"),
+            Token::new_atom(";"),
+        ],
+        Path::new("-"),
+        &mut out,
+    );
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "@@ -1,4 +1,3 @@\n",
+            "-int ivalue1;\n",
+            " int ivalue2;\n",
+            " int ivalue3;\n",
+            " int ivalue4;\n" //
+        )
+    );
+}
+
+#[test]
+fn format_removal_end() {
+    // Check the diff format when data is removed at the end.
+    let mut out = Vec::new();
+    let result = write_type_diff(
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue1"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue5"),
+            Token::new_atom(";"),
+        ],
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue1"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+        ],
+        Path::new("-"),
+        &mut out,
+    );
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "@@ -2,4 +2,3 @@\n",
+            " int ivalue2;\n",
+            " int ivalue3;\n",
+            " int ivalue4;\n",
+            "-int ivalue5;\n" //
+        )
+    );
+}
+
+#[test]
+fn format_max_context() {
+    // Check the diff format shows changes separated by up to 6 lines of context as one hunk.
+    let mut out = Vec::new();
+    let result = write_type_diff(
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue1"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue5"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue6"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue7"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue8"),
+            Token::new_atom(";"),
+        ],
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue5"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue6"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue7"),
+            Token::new_atom(";"),
+        ],
+        Path::new("-"),
+        &mut out,
+    );
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "@@ -1,8 +1,6 @@\n",
+            "-int ivalue1;\n",
+            " int ivalue2;\n",
+            " int ivalue3;\n",
+            " int ivalue4;\n",
+            " int ivalue5;\n",
+            " int ivalue6;\n",
+            " int ivalue7;\n",
+            "-int ivalue8;\n" //
+        )
+    );
+}
+
+#[test]
+fn format_max_context2() {
+    // Check the diff format shows changes separated by more than 6 lines of context as two hunks.
+    let mut out = Vec::new();
+    let result = write_type_diff(
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue1"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue5"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue6"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue7"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue8"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue9"),
+            Token::new_atom(";"),
+        ],
+        &vec![
+            Token::new_atom("int"),
+            Token::new_atom("ivalue2"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue3"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue4"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue5"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue6"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue7"),
+            Token::new_atom(";"),
+            Token::new_atom("int"),
+            Token::new_atom("ivalue8"),
+            Token::new_atom(";"),
+        ],
+        Path::new("-"),
+        &mut out,
+    );
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "@@ -1,4 +1,3 @@\n",
+            "-int ivalue1;\n",
+            " int ivalue2;\n",
+            " int ivalue3;\n",
+            " int ivalue4;\n",
+            "@@ -6,4 +5,3 @@\n",
+            " int ivalue6;\n",
+            " int ivalue7;\n",
+            " int ivalue8;\n",
+            "-int ivalue9;\n" //
+        )
+    );
+}
+
+#[test]
 fn format_addition() {
     // Check the diff format when a struct member is added.
     let mut out = Vec::new();
