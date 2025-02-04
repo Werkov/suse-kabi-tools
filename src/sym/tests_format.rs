@@ -7,7 +7,7 @@ use std::path::Path;
 
 #[test]
 fn format_typedef() {
-    // Check pretty-formatting of a typedef declaration.
+    // Check the pretty format of a typedef declaration.
     let pretty = pretty_format_type(&vec![
         Token::new_atom("typedef"),
         Token::new_atom("unsigned"),
@@ -25,7 +25,7 @@ fn format_typedef() {
 
 #[test]
 fn format_enum() {
-    // Check pretty-formatting of an enum declaration.
+    // Check the pretty format of an enum declaration.
     let pretty = pretty_format_type(&vec![
         Token::new_atom("enum"),
         Token::new_atom("test"),
@@ -51,7 +51,7 @@ fn format_enum() {
 
 #[test]
 fn format_struct() {
-    // Check pretty-formatting of a struct declaration.
+    // Check the pretty format of a struct declaration.
     let pretty = pretty_format_type(&vec![
         Token::new_atom("struct"),
         Token::new_atom("test"),
@@ -77,7 +77,7 @@ fn format_struct() {
 
 #[test]
 fn format_union() {
-    // Check pretty-formatting of a union declaration.
+    // Check the pretty format of a union declaration.
     let pretty = pretty_format_type(&vec![
         Token::new_atom("union"),
         Token::new_atom("test"),
@@ -103,7 +103,7 @@ fn format_union() {
 
 #[test]
 fn format_enum_constant() {
-    // Check pretty-formatting of an enum constant declaration.
+    // Check the pretty format of an enum constant declaration.
     let pretty = pretty_format_type(&vec![Token::new_atom("7")]);
     assert_eq!(
         pretty,
@@ -115,7 +115,7 @@ fn format_enum_constant() {
 
 #[test]
 fn format_nested() {
-    // Check pretty-formatting of a nested declaration.
+    // Check the pretty format of a nested declaration.
     let pretty = pretty_format_type(&vec![
         Token::new_atom("union"),
         Token::new_atom("nested"),
@@ -151,7 +151,7 @@ fn format_nested() {
 
 #[test]
 fn format_imbalanced() {
-    // Check pretty-formatting of a declaration with wrongly balanced brackets.
+    // Check the pretty format of a declaration with wrongly balanced brackets.
     let pretty = pretty_format_type(&vec![
         Token::new_atom("struct"),
         Token::new_atom("imbalanced"),
@@ -180,7 +180,7 @@ fn format_imbalanced() {
 
 #[test]
 fn format_typeref() {
-    // Check pretty-formatting of a declaration with a reference to another type.
+    // Check the pretty format of a declaration with a reference to another type.
     let pretty = pretty_format_type(&vec![
         Token::new_atom("struct"),
         Token::new_atom("typeref"),
@@ -202,7 +202,7 @@ fn format_typeref() {
 
 #[test]
 fn format_removal() {
-    // TODO Add test description.
+    // Check the diff format when a struct member is removed.
     let mut out = Vec::new();
     let result = write_type_diff(
         &vec![
@@ -244,7 +244,7 @@ fn format_removal() {
 
 #[test]
 fn format_addition() {
-    // TODO Add test description.
+    // Check the diff format when a struct member is added.
     let mut out = Vec::new();
     let result = write_type_diff(
         &vec![
@@ -286,7 +286,7 @@ fn format_addition() {
 
 #[test]
 fn format_modification() {
-    // TODO Add test description.
+    // Check the diff format when a struct member is modified.
     let mut out = Vec::new();
     let result = write_type_diff(
         &vec![
