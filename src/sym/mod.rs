@@ -3,11 +3,11 @@
 
 use crate::debug;
 use crate::MapIOErr;
-use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{prelude::*, BufReader, BufWriter};
+use std::iter::zip;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, RwLock};
@@ -941,39 +941,55 @@ impl SymCorpus {
         let tokens = Self::get_type_tokens(self, file, name);
         let other_tokens = Self::get_type_tokens(other, other_file, name);
 
-        let mut is_equal = tokens.len() == other_tokens.len();
-        let min_tokens = min(tokens.len(), other_tokens.len());
-        for i in 0..min_tokens {
-            let token = &tokens[i];
-            let other_token = &other_tokens[i];
-
-            is_equal &= match (token, other_token) {
-                (Token::TypeRef(ref_name), Token::TypeRef(other_ref_name)) => {
-                    if ref_name == other_ref_name {
-                        self.compare_types(
-                            other,
-                            file,
-                            other_file,
-                            ref_name.as_str(),
-                            export,
-                            processed,
-                            changes,
-                        );
-                        true
-                    } else {
-                        false
-                    }
-                }
-                (Token::Atom(word), Token::Atom(other_word)) => word == other_word,
-                _ => false,
-            };
-        }
+        // Compare the immediate tokens.
+        let is_equal = tokens.len() == other_tokens.len()
+            && zip(tokens.iter(), other_tokens.iter())
+                .all(|(token, other_token)| token == other_token);
         if !is_equal {
             let mut changes = changes.lock().unwrap();
             changes
                 .entry((name, tokens, other_tokens))
                 .or_default()
                 .push(export);
+        }
+
+        // Compare recursively same referenced types. This can be done trivially if the tokens are
+        // equal. If they are not, try hard (and slowly) to find any matching types.
+        if is_equal {
+            for token in tokens {
+                if let Token::TypeRef(ref_name) = token {
+                    self.compare_types(
+                        other,
+                        file,
+                        other_file,
+                        ref_name.as_str(),
+                        export,
+                        processed,
+                        changes,
+                    );
+                }
+            }
+        } else {
+            for token in tokens {
+                if let Token::TypeRef(ref_name) = token {
+                    for other_token in other_tokens {
+                        if let Token::TypeRef(other_ref_name) = other_token {
+                            if ref_name == other_ref_name {
+                                self.compare_types(
+                                    other,
+                                    file,
+                                    other_file,
+                                    ref_name.as_str(),
+                                    export,
+                                    processed,
+                                    changes,
+                                );
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
