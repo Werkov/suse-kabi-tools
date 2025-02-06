@@ -18,6 +18,13 @@ mod tests;
 #[cfg(test)]
 mod tests_format;
 
+// Notes:
+// [1] The module uses several HashMaps that are indexed by Strings. Rust allows to do a lookup in
+//     such a HashMap using &str. Unfortunately, stable Rust (1.84) currently doesn't offer to do
+//     this lookup but insert the key as String if it is missing. Depending on a specific case and
+//     what is likely to produce less overhead, the code opts to turn the key already to a String on
+//     the first lookup, or opts to run the search again if the key is missing and needs inserting.
+
 /// A token used in the description of a type.
 #[derive(Eq, PartialEq, Hash, Ord, PartialOrd)]
 enum Token {
@@ -415,7 +422,7 @@ impl SymCorpus {
             if is_consolidated {
                 // Record a mapping from the original variant name/index to the new one.
                 remap
-                    .entry(base_name.to_string())
+                    .entry(base_name.to_string()) // [1]
                     .or_default()
                     .insert(orig_variant_name.to_string(), variant_idx);
             } else {
@@ -566,10 +573,7 @@ impl SymCorpus {
                 variants.len() - 1
             }
             None => {
-                // XXX HashMap in stable Rust (1.84) doesn't offer to do a lookup using &str but
-                // insert the key as String if it is missing. The code opts to run the lookup again
-                // if the key is missing and the key+value pair needs inserting.
-                types.insert(type_name.to_string(), vec![tokens]);
+                types.insert(type_name.to_string(), vec![tokens]); // [1]
                 0
             }
         }
@@ -590,7 +594,8 @@ impl SymCorpus {
         // Try to add the export, return an error if it is a duplicate.
         let other_file_idx = {
             let mut exports = load_context.exports.lock().unwrap();
-            match exports.entry(type_name.to_string()) {
+            match exports.entry(type_name.to_string()) // [1]
+            {
                 Occupied(export_entry) => *export_entry.get(),
                 Vacant(export_entry) => {
                     export_entry.insert(file_idx);
@@ -641,14 +646,10 @@ impl SymCorpus {
             assert!(variant_idx == 0);
 
             // See if the symbol was already processed.
-            //
-            // XXX HashMap in stable Rust (1.84) doesn't offer to do a lookup using &str but insert
-            // the key as String if it is missing. The code opts to run the lookup again if the key
-            // is missing and the key+value pair needs inserting.
             if records.get(name).is_some() {
                 return Ok(());
             }
-            records.insert(name.to_string(), variant_idx);
+            records.insert(name.to_string(), variant_idx); // [1]
         }
 
         // Obtain tokens for the selected variant and check it is correctly specified.
@@ -952,7 +953,7 @@ impl SymCorpus {
         if processed.get(name).is_some() {
             return;
         }
-        processed.insert(name.to_string());
+        processed.insert(name.to_string()); // [1]
 
         // Look up how the symbol is defined in each corpus.
         let tokens = Self::get_type_tokens(self, file, name);
