@@ -242,7 +242,7 @@ fn read_write_differing_struct() {
 
 #[test]
 fn compare_identical() {
-    // Check that comparing two identical corpuses shows no differences.
+    // Check that the comparison of two identical corpuses shows no differences.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
         Path::new("a/test.symtypes"),
@@ -274,7 +274,7 @@ fn compare_identical() {
 
 #[test]
 fn compare_added_export() {
-    // Check that comparing two corpuses reports any newly added export.
+    // Check that the comparison of two corpuses reports any newly added export.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
         Path::new("a/test.symtypes"),
@@ -307,7 +307,7 @@ fn compare_added_export() {
 
 #[test]
 fn compare_removed_export() {
-    // Check that comparing two corpuses reports any removed export.
+    // Check that the comparison of two corpuses reports any removed export.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
         Path::new("a/test.symtypes"),

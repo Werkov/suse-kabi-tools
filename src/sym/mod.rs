@@ -71,7 +71,7 @@ struct SymFile {
 /// A collection of `.symtypes` files.
 type SymFiles = Vec<SymFile>;
 
-/// A representation of a kernel kABI, loaded from `.symtypes` files.
+/// A representation of a kernel ABI, loaded from `.symtypes` files.
 ///
 /// * The `types` collection stores all types and their variants.
 /// * The `files` collection records types in individual `.symtypes` files. Each type uses an index
@@ -691,6 +691,7 @@ impl SymCorpus {
         Ok(())
     }
 
+    /// Compares two sets of `Tokens` and returns whether they are equal.
     fn are_tokens_eq(a: &Tokens, b: &Tokens) -> bool {
         if a.len() != b.len() {
             return false;
@@ -703,6 +704,8 @@ impl SymCorpus {
         true
     }
 
+    /// Returns whether the specified `name` is an export definition, as opposed to a <X>#<foo> type
+    /// definition.
     fn is_export(name: &str) -> bool {
         match name.chars().nth(1) {
             Some(ch) => ch != '#',
@@ -905,6 +908,7 @@ impl SymCorpus {
         Ok(())
     }
 
+    /// Obtains tokens which describe a specified type name, in a given corpus and file.
     fn get_type_tokens<'a>(symtypes: &'a SymCorpus, file: &SymFile, name: &str) -> &'a Tokens {
         match file.records.get(name) {
             Some(&variant_idx) => match symtypes.types.get(name) {
@@ -923,6 +927,17 @@ impl SymCorpus {
         }
     }
 
+    /// Compares the definition of the symbol `name` in the `self` corpus and the `file` file with
+    /// its definition in the `other` corpus and the `other_file` file.
+    ///
+    /// If the immediate definition of the symbol differs between the two corpuses then it gets
+    /// added in `changes`. The `changes` is a [`HashMap`] which records a tuple of
+    /// (`name`, `tokens`, `other_tokens`) for each modified type together with a [`Vec`] of
+    /// affected top-level `export` symbols.
+    ///
+    /// The specified symbol is added to `processed_types`, if not already present, and all its type
+    /// references get recursively processed in the same way. The `processed_types` is a [`HashMap`]
+    /// which tracks all already visited types.
     fn compare_types<'a>(
         &'a self,
         other: &'a SymCorpus,
@@ -933,11 +948,13 @@ impl SymCorpus {
         processed: &mut HashSet<String>,
         changes: &Mutex<HashMap<(&'a str, &'a Tokens, &'a Tokens), Vec<&'a str>>>,
     ) {
+        // See if the symbol was already processed.
         if processed.get(name).is_some() {
             return;
         }
         processed.insert(name.to_string());
 
+        // Look up how the symbol is defined in each corpus.
         let tokens = Self::get_type_tokens(self, file, name);
         let other_tokens = Self::get_type_tokens(other, other_file, name);
 
@@ -993,6 +1010,9 @@ impl SymCorpus {
         }
     }
 
+    /// Compares symbols in the `self` and `other` corpuses.
+    ///
+    /// A human-readable report about all found changes is output into `writer`.
     pub fn compare_with<W>(
         &self,
         other: &SymCorpus,
@@ -1017,6 +1037,7 @@ impl SymCorpus {
             }
         }
 
+        // Compare symbols that are in both corpuses.
         let works: Vec<_> = self.exports.iter().collect();
         let next_work_idx = AtomicUsize::new(0);
 
