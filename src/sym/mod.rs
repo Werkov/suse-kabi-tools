@@ -1039,6 +1039,13 @@ impl SymCorpus {
         let changes = changes.into_inner().unwrap();
         let mut add_separator = false;
         for ((name, tokens, other_tokens), mut exports) in changes {
+            // Add an empty line to separate individual changes.
+            if add_separator {
+                writeln!(writer).map_io_err(path)?;
+            } else {
+                add_separator = true;
+            }
+
             writeln!(
                 writer,
                 "The following '{}' exports are different:",
@@ -1053,13 +1060,6 @@ impl SymCorpus {
 
             writeln!(writer, "because of a changed '{}':", name).map_io_err(path)?;
             write_type_diff(tokens, other_tokens, path, writer.by_ref())?;
-
-            // Add an empty line to separate individual changes.
-            if add_separator {
-                writeln!(writer).map_io_err(path)?;
-            } else {
-                add_separator = true;
-            }
         }
 
         Ok(())
