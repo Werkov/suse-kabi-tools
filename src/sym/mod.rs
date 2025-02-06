@@ -1032,21 +1032,18 @@ impl SymCorpus {
                     let (name, file_idx) = works[work_idx];
 
                     let file = &self.files[*file_idx];
-                    match other.exports.get(name) {
-                        Some(other_file_idx) => {
-                            let other_file = &other.files[*other_file_idx];
-                            let mut processed = HashSet::new();
-                            self.compare_types(
-                                other,
-                                file,
-                                other_file,
-                                name,
-                                name,
-                                &mut processed,
-                                &changes,
-                            );
-                        }
-                        None => {} // Export is in self but not in other, already handled above.
+                    if let Some(other_file_idx) = other.exports.get(name) {
+                        let other_file = &other.files[*other_file_idx];
+                        let mut processed = HashSet::new();
+                        self.compare_types(
+                            other,
+                            file,
+                            other_file,
+                            name,
+                            name,
+                            &mut processed,
+                            &changes,
+                        );
                     }
                 });
             }
