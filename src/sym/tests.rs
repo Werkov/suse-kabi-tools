@@ -337,3 +337,99 @@ fn compare_removed_export() {
         )
     );
 }
+
+#[test]
+fn compare_changed_type() {
+    // Check that the comparison of two corpuses reports changed types and affected exports.
+    let mut syms = SymCorpus::new();
+    let result = syms.load_buffer(
+        Path::new("a/test.symtypes"),
+        concat!(
+            "s#foo struct foo { int a ; }\n",
+            "bar int bar ( s#foo )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut syms2 = SymCorpus::new();
+    let result = syms2.load_buffer(
+        Path::new("b/test.symtypes"),
+        concat!(
+            "s#foo struct foo { int a ; int b ; }\n",
+            "bar int bar ( s#foo )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut out = Vec::new();
+    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "The following '1' exports are different:\n",
+            " bar\n",
+            "\n",
+            "because of a changed 's#foo':\n",
+            "@@ -1,3 +1,4 @@\n",
+            " struct foo {\n",
+            " \tint a;\n",
+            "+\tint b;\n",
+            " }\n", //
+        )
+    );
+}
+
+#[test]
+fn compare_changed_nested_type() {
+    // Check that the comparison of two corpuses reports also changes in subtypes even if the parent
+    // type itself is modified, as long as each subtype is referenced by the parent type in both
+    // inputs.
+    let mut syms = SymCorpus::new();
+    let result = syms.load_buffer(
+        Path::new("a/test.symtypes"),
+        concat!(
+            "s#foo struct foo { int a ; }\n",
+            "bar int bar ( int a , s#foo )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut syms2 = SymCorpus::new();
+    let result = syms2.load_buffer(
+        Path::new("b/test.symtypes"),
+        concat!(
+            "s#foo struct foo { int a ; int b ; }\n",
+            "bar int bar ( s#foo , int a )\n", //
+        )
+        .as_bytes(),
+    );
+    assert_ok!(result);
+    let mut out = Vec::new();
+    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    assert_ok!(result);
+    assert_eq!(
+        String::from_utf8(out).unwrap(),
+        concat!(
+            "The following '1' exports are different:\n",
+            " bar\n",
+            "\n",
+            "because of a changed 'bar':\n",
+            "@@ -1,2 +1,2 @@\n",
+            "-int bar ( int a,\n",
+            "-s#foo )\n",
+            "+int bar ( s#foo,\n",
+            "+int a )\n",
+            "\n",
+            "The following '1' exports are different:\n",
+            " bar\n",
+            "\n",
+            "because of a changed 's#foo':\n",
+            "@@ -1,3 +1,4 @@\n",
+            " struct foo {\n",
+            " \tint a;\n",
+            "+\tint b;\n",
+            " }\n", //
+        )
+    );
+}
