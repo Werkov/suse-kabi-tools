@@ -188,8 +188,8 @@ where
 
                 // If handling a hunk, check if it should be closed off.
                 if !hunk_data.is_empty() && context_end - context_begin > 2 * CONTEXT_SIZE {
-                    for i in context_begin..context_begin + CONTEXT_SIZE {
-                        hunk_data.push(format!(" {}", a[i]));
+                    for line in a.iter().skip(context_begin).take(CONTEXT_SIZE) {
+                        hunk_data.push(format!(" {}", line));
                     }
                     hunk_len_a += CONTEXT_SIZE;
                     hunk_len_b += CONTEXT_SIZE;
@@ -227,8 +227,8 @@ where
                 }
 
                 // Add any accumulated context.
-                for i in context_begin..context_end {
-                    hunk_data.push(format!(" {}", a[i]));
+                for line in a.iter().take(context_end).skip(context_begin) {
+                    hunk_data.push(format!(" {}", line));
                 }
                 hunk_len_a += context_end - context_begin;
                 hunk_len_b += context_end - context_begin;
@@ -251,8 +251,8 @@ where
         if context_end - context_begin > CONTEXT_SIZE {
             context_end = context_begin + CONTEXT_SIZE;
         }
-        for i in context_begin..context_end {
-            hunk_data.push(format!(" {}", a[i]));
+        for line in a.iter().take(context_end).skip(context_begin) {
+            hunk_data.push(format!(" {}", line));
         }
         hunk_len_a += context_end - context_begin;
         hunk_len_b += context_end - context_begin;
