@@ -18,7 +18,7 @@ fn format_typedef() {
     assert_eq!(
         pretty,
         crate::string_vec!(
-            "typedef unsigned long long u64" //
+            "typedef unsigned long long u64", //
         )
     );
 }
@@ -44,7 +44,7 @@ fn format_enum() {
             "\tVALUE1,",
             "\tVALUE2,",
             "\tVALUE3",
-            "}" //
+            "}", //
         )
     );
 }
@@ -70,7 +70,7 @@ fn format_struct() {
             "struct test {",
             "\tint ivalue;",
             "\tlong lvalue;",
-            "}" //
+            "}", //
         )
     );
 }
@@ -96,7 +96,7 @@ fn format_union() {
             "union test {",
             "\tint ivalue;",
             "\tlong lvalue;",
-            "}" //
+            "}", //
         )
     );
 }
@@ -108,7 +108,7 @@ fn format_enum_constant() {
     assert_eq!(
         pretty,
         crate::string_vec!(
-            "7" //
+            "7", //
         )
     );
 }
@@ -144,7 +144,7 @@ fn format_nested() {
             "\t\tint ivalue2;",
             "\t};",
             "\tlong lvalue;",
-            "}" //
+            "}", //
         )
     );
 }
@@ -173,7 +173,7 @@ fn format_imbalanced() {
             "}",
             "};",
             "{",
-            "\t{" //
+            "\t{", //
         )
     );
 }
@@ -195,7 +195,7 @@ fn format_typeref() {
         crate::string_vec!(
             "struct typeref {",
             "\ts#other other;",
-            "}" //
+            "}", //
         )
     );
 }
@@ -237,7 +237,7 @@ fn format_removal() {
             " struct test {\n",
             " \tint ivalue1;\n",
             "-\tint ivalue2;\n",
-            " }\n" //
+            " }\n", //
         )
     );
 }
@@ -289,7 +289,7 @@ fn format_removal_top() {
             "-int ivalue1;\n",
             " int ivalue2;\n",
             " int ivalue3;\n",
-            " int ivalue4;\n" //
+            " int ivalue4;\n", //
         )
     );
 }
@@ -341,7 +341,7 @@ fn format_removal_end() {
             " int ivalue2;\n",
             " int ivalue3;\n",
             " int ivalue4;\n",
-            "-int ivalue5;\n" //
+            "-int ivalue5;\n", //
         )
     );
 }
@@ -412,7 +412,7 @@ fn format_max_context() {
             " int ivalue5;\n",
             " int ivalue6;\n",
             " int ivalue7;\n",
-            "-int ivalue8;\n" //
+            "-int ivalue8;\n", //
         )
     );
 }
@@ -490,7 +490,7 @@ fn format_max_context2() {
             " int ivalue6;\n",
             " int ivalue7;\n",
             " int ivalue8;\n",
-            "-int ivalue9;\n" //
+            "-int ivalue9;\n", //
         )
     );
 }
@@ -532,7 +532,7 @@ fn format_addition() {
             " struct test {\n",
             " \tint ivalue1;\n",
             "+\tint ivalue2;\n",
-            " }\n" //
+            " }\n", //
         )
     );
 }
@@ -571,7 +571,7 @@ fn format_modification() {
             " struct test {\n",
             "-\tint ivalue1;\n",
             "+\tint ivalue2;\n",
-            " }\n" //
+            " }\n", //
         )
     );
 }

@@ -122,7 +122,7 @@ fn read_duplicate_type_export() {
     let result = syms.load_buffer(
         Path::new("test.symtypes"),
         concat!(
-            "foo int foo ( )\n" //
+            "foo int foo ( )\n", //
         )
         .as_bytes(),
     );
@@ -130,7 +130,7 @@ fn read_duplicate_type_export() {
     let result = syms.load_buffer(
         Path::new("test2.symtypes"),
         concat!(
-            "foo int foo ( )" //
+            "foo int foo ( )", //
         )
         .as_bytes(),
     );
@@ -312,7 +312,7 @@ fn compare_removed_export() {
     let result = syms.load_buffer(
         Path::new("a/test.symtypes"),
         concat!(
-            "bar int bar ( )\n", //
+            "bar int bar ( )\n",
             "baz int baz ( )\n", //
         )
         .as_bytes(),
