@@ -19,7 +19,7 @@ mod tests;
 mod tests_format;
 
 /// A token used in the description of a type.
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, PartialEq, Hash, Ord, PartialOrd)]
 enum Token {
     TypeRef(String),
     Atom(String),
@@ -1052,9 +1052,14 @@ impl SymCorpus {
             }
         });
 
-        let changes = changes.into_inner().unwrap();
+        // Format and output collected changes.
+        let changes = changes.into_inner().unwrap(); // Get the inner HashMap.
+        let mut changes = changes.into_iter().collect::<Vec<_>>();
+        changes.iter_mut().for_each(|(_, exports)| exports.sort());
+        changes.sort();
+
         let mut add_separator = false;
-        for ((name, tokens, other_tokens), mut exports) in changes {
+        for ((name, tokens, other_tokens), exports) in changes {
             // Add an empty line to separate individual changes.
             if add_separator {
                 writeln!(writer).map_io_err(path)?;
@@ -1068,7 +1073,6 @@ impl SymCorpus {
                 exports.len()
             )
             .map_io_err(path)?;
-            exports.sort();
             for export in exports {
                 writeln!(writer, " {}", export).map_io_err(path)?;
             }
