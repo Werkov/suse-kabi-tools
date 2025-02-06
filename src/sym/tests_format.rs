@@ -102,6 +102,31 @@ fn format_union() {
 }
 
 #[test]
+fn format_function() {
+    // Check the pretty format of a function declaration.
+    let pretty = pretty_format_type(&vec![
+        Token::new_atom("void"),
+        Token::new_atom("test"),
+        Token::new_atom("("),
+        Token::new_atom("int"),
+        Token::new_atom("ivalue"),
+        Token::new_atom(","),
+        Token::new_atom("long"),
+        Token::new_atom("lvalue"),
+        Token::new_atom(")"),
+    ]);
+    assert_eq!(
+        pretty,
+        crate::string_vec!(
+            "void test (",
+            "\tint ivalue,",
+            "\tlong lvalue",
+            ")", //
+        )
+    );
+}
+
+#[test]
 fn format_enum_constant() {
     // Check the pretty format of an enum constant declaration.
     let pretty = pretty_format_type(&vec![Token::new_atom("7")]);

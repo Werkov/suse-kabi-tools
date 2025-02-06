@@ -1127,8 +1127,9 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
 
     let mut line = String::new();
     for token in tokens {
-        // Handle the closing bracket early, it ends any prior line and reduces indentation.
-        if token.as_str() == "}" {
+        // Handle the closing bracket and parenthesis early, they end any prior line and reduce
+        // indentation.
+        if token.as_str() == "}" || token.as_str() == ")" {
             if !line.is_empty() {
                 res.push(line);
             }
@@ -1144,18 +1145,18 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
 
         // Check if the token is special and append it appropriately to the output.
         match token.as_str() {
-            "{" => {
+            "{" | "(" => {
                 if !is_first {
                     line.push(' ');
                 }
-                line.push('{');
+                line.push_str(token.as_str());
                 res.push(line);
                 indent = indent.saturating_add(1);
 
                 line = String::new();
             }
-            "}" => {
-                line.push('}');
+            "}" | ")" => {
+                line.push_str(token.as_str());
             }
             ";" => {
                 line.push(';');
