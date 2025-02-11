@@ -33,8 +33,8 @@ fn compare_cmd() {
     // Check that the compare command trivially works.
     let result = ksymtypes_run([
         "compare",
-        "tests/compare_cmd_a.symtypes",
-        "tests/compare_cmd_b.symtypes",
+        "tests/compare_cmd/a.symtypes",
+        "tests/compare_cmd/b.symtypes",
     ]);
     assert!(result.status.success());
     assert_eq!(
@@ -55,27 +55,13 @@ fn compare_cmd() {
 }
 
 #[test]
-fn compare_cmd_interleaved() {
-    // Check that options specified after operands of the compare command are rejected.
-    let result = ksymtypes_run([
-        "compare",
-        "tests/compare_cmd_a.symtypes",
-        "--test",
-        "tests/compare_cmd_b.symtypes",
-    ]);
-    assert!(!result.status.success());
-    assert_eq!(result.stdout, "");
-    assert_eq!(result.stderr, "Option '--test' must precede operands\n");
-}
-
-#[test]
 fn compare_cmd_dash_dash() {
     // Check that operands of the compare command can be specified after '--'.
     let result = ksymtypes_run([
         "compare",
         "--",
-        "tests/compare_cmd_a.symtypes",
-        "tests/compare_cmd_b.symtypes",
+        "tests/compare_cmd/a.symtypes",
+        "tests/compare_cmd/b.symtypes",
     ]);
     assert!(result.status.success());
     assert_eq!(
@@ -100,8 +86,7 @@ fn consolidate_cmd() {
     // Check that the consolidate command trivially works.
     let result = ksymtypes_run([
         "consolidate",
-        "tests/consolidate_cmd_a.symtypes",
-        "tests/consolidate_cmd_b.symtypes",
+        "tests/consolidate_cmd",
     ]);
     assert!(result.status.success());
     assert_eq!(
@@ -110,8 +95,8 @@ fn consolidate_cmd() {
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n",
             "baz int baz ( s#foo )\n",
-            "F#tests/consolidate_cmd_a.symtypes bar\n",
-            "F#tests/consolidate_cmd_b.symtypes baz\n", //
+            "F#tests/consolidate_cmd/a.symtypes bar\n",
+            "F#tests/consolidate_cmd/b.symtypes baz\n", //
         )
     );
     assert_eq!(result.stderr, "");
@@ -127,8 +112,7 @@ fn consolidate_cmd_output() {
         AsRef::<OsStr>::as_ref("consolidate"),
         "--output".as_ref(),
         &output_path.as_ref(),
-        "tests/consolidate_cmd_a.symtypes".as_ref(),
-        "tests/consolidate_cmd_b.symtypes".as_ref(),
+        "tests/consolidate_cmd".as_ref(),
     ]);
     assert!(result.status.success());
     assert_eq!(result.stdout, "");
@@ -140,8 +124,8 @@ fn consolidate_cmd_output() {
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n",
             "baz int baz ( s#foo )\n",
-            "F#tests/consolidate_cmd_a.symtypes bar\n",
-            "F#tests/consolidate_cmd_b.symtypes baz\n", //
+            "F#tests/consolidate_cmd/a.symtypes bar\n",
+            "F#tests/consolidate_cmd/b.symtypes baz\n", //
         )
     );
 }

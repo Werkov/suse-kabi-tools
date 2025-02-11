@@ -187,14 +187,10 @@ impl SymCorpus {
     ///
     /// The `paths` can point to a single `.symtypes` file or a directory. In the latter case, the
     /// function recursively collects all `.symtypes` in that directory and loads them.
-    pub fn load_multiple<P>(&mut self, paths: &[P], num_workers: i32) -> Result<(), crate::Error>
-    where
-        P: AsRef<Path>,
+    pub fn load_multiple(&mut self, paths: &[&Path], num_workers: i32) -> Result<(), crate::Error>
     {
         let mut symfiles = Vec::new();
         for path in paths {
-            let path = path.as_ref();
-
             // Determine if the input is a directory tree or a single symtypes file.
             let md = fs::metadata(path).map_err(|err| {
                 crate::Error::new_io(&format!("Failed to query path '{}'", path.display()), err)

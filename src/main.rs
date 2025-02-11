@@ -64,7 +64,7 @@ fn print_version() {
 /// Prints the usage message for the `consolidate` command on `stdout`.
 fn print_consolidate_usage() {
     print!(concat!(
-        "Usage: ksymtypes consolidate [OPTION...] [PATH...]\n",
+        "Usage: ksymtypes consolidate [OPTION...] PATH\n",
         "Consolidate symtypes into a single file.\n",
         "\n",
         "Options:\n",
@@ -151,23 +151,6 @@ where
     Ok(None)
 }
 
-/// Collects operands from the rest of `args` and checks that they are not an option, unless
-/// `past_dash_dash` is `true`.
-fn collect_operands<I>(args: I, past_dash_dash: bool, operands: &mut Vec<String>) -> Result<(), ()>
-where
-    I: Iterator<Item = String>,
-{
-    for arg in args {
-        // Check it's not an option.
-        if !past_dash_dash && arg.starts_with('-') {
-            eprintln!("Option '{}' must precede operands", arg);
-            return Err(());
-        }
-        operands.push(arg);
-    }
-    Ok(())
-}
-
 /// Handles the `consolidate` command which consolidates symtypes into a single file.
 fn do_consolidate<I>(do_timing: bool, args: I) -> Result<(), ()>
 where
@@ -181,59 +164,49 @@ where
     let mut maybe_path = None;
 
     while let Some(arg) = args.next() {
-        if let Some(value) = handle_value_option(&arg, &mut args, "-o", "--output")? {
-            output = value;
+        if !past_dash_dash {
+            if let Some(value) = handle_value_option(&arg, &mut args, "-o", "--output")? {
+                output = value;
+                continue;
+            }
+            if let Some(value) = handle_jobs_option(&arg, &mut args)? {
+                num_workers = value;
+                continue;
+            }
+            if arg == "-h" || arg == "--help" {
+                print_consolidate_usage();
+                return Ok(());
+            }
+            if arg == "--" {
+                past_dash_dash = true;
+                continue;
+            }
+            if arg.starts_with('-') || arg.starts_with("--") {
+                eprintln!("Unrecognized consolidate option '{}'", arg);
+                return Err(());
+            }
+        }
+
+        if maybe_path.is_none() {
+            maybe_path = Some(arg);
             continue;
         }
-        if let Some(value) = handle_jobs_option(&arg, &mut args)? {
-            num_workers = value;
-            continue;
-        }
-
-        if arg == "-h" || arg == "--help" {
-            print_consolidate_usage();
-            return Ok(());
-        }
-        if arg == "--" {
-            past_dash_dash = true;
-            break;
-        }
-        if arg.starts_with('-') || arg.starts_with("--") {
-            eprintln!("Unrecognized consolidate option '{}'", arg);
-            return Err(());
-        }
-        maybe_path = Some(arg);
-        break;
-    }
-
-    // Collect all paths on the command line.
-    let mut paths = Vec::new();
-    if let Some(path) = maybe_path {
-        paths.push(path);
-    }
-    collect_operands(args, past_dash_dash, &mut paths)?;
-
-    if paths.is_empty() {
-        eprintln!("The consolidate source is missing");
+        eprintln!("Excess consolidate argument '{}' specified", arg);
         return Err(());
-    };
+    }
+
+    let path = maybe_path.ok_or_else(|| {
+        eprintln!("The consolidate source is missing");
+    })?;
 
     // Do the consolidation.
     let mut syms = SymCorpus::new();
 
     {
-        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{:?}'", paths));
+        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path));
 
-        if let Err(err) = syms.load_multiple(&paths, num_workers) {
-            if paths.len() == 1 {
-                eprintln!(
-                    "Failed to read symtypes from '{}': {}",
-                    Path::new(&paths[0]).display(),
-                    err
-                );
-            } else {
-                eprintln!("Failed to read specified symtypes: {}", err);
-            }
+        if let Err(err) = syms.load(Path::new(&path), num_workers) {
+            eprintln!("Failed to read symtypes from '{}': {}", path, err);
             return Err(());
         }
     }
@@ -266,63 +239,67 @@ where
     let mut num_workers = 1;
     let mut past_dash_dash = false;
     let mut maybe_path = None;
+    let mut maybe_path2 = None;
 
     while let Some(arg) = args.next() {
-        if let Some(value) = handle_jobs_option(&arg, &mut args)? {
-            num_workers = value;
+        if !past_dash_dash {
+            if let Some(value) = handle_jobs_option(&arg, &mut args)? {
+                num_workers = value;
+                continue;
+            }
+            if arg == "-h" || arg == "--help" {
+                print_compare_usage();
+                return Ok(());
+            }
+            if arg == "--" {
+                past_dash_dash = true;
+                continue;
+            }
+            if arg.starts_with('-') || arg.starts_with("--") {
+                eprintln!("Unrecognized compare option '{}'", arg);
+                return Err(());
+            }
+        }
+
+        if maybe_path.is_none() {
+            maybe_path = Some(arg);
             continue;
         }
-
-        if arg == "-h" || arg == "--help" {
-            print_compare_usage();
-            return Ok(());
+        if maybe_path2.is_none() {
+            maybe_path2 = Some(arg);
+            continue;
         }
-        if arg == "--" {
-            past_dash_dash = true;
-            break;
-        }
-        if arg.starts_with('-') || arg.starts_with("--") {
-            eprintln!("Unrecognized compare option '{}'", arg);
-            return Err(());
-        }
-        maybe_path = Some(arg);
-        break;
+        eprintln!("Excess compare argument '{}' specified", arg);
+        return Err(());
     }
 
-    // Collect all paths on the command line.
-    let mut paths = Vec::new();
-    if let Some(path) = maybe_path {
-        paths.push(path);
-    }
-    collect_operands(args, past_dash_dash, &mut paths)?;
-
-    if paths.len() != 2 {
-        eprintln!(
-            "The compare command takes two sources, '{}' given",
-            paths.len()
-        );
-    }
+    let path = maybe_path.ok_or_else(|| {
+        eprintln!("The first compare source is missing");
+    })?;
+    let path2 = maybe_path2.ok_or_else(|| {
+        eprintln!("The second compare source is missing");
+    })?;
 
     // Do the comparison.
-    debug!("Compare '{}' and '{}'", paths[0], paths[1]);
+    debug!("Compare '{}' and '{}'", path, path2);
 
     let syms = {
-        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", paths[0]));
+        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path));
 
         let mut syms = SymCorpus::new();
-        if let Err(err) = syms.load(Path::new(&paths[0]), num_workers) {
-            eprintln!("Failed to read symtypes from '{}': {}", paths[0], err);
+        if let Err(err) = syms.load(Path::new(&path), num_workers) {
+            eprintln!("Failed to read symtypes from '{}': {}", path, err);
             return Err(());
         }
         syms
     };
 
     let syms2 = {
-        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", paths[1]));
+        let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path2));
 
         let mut syms2 = SymCorpus::new();
-        if let Err(err) = syms2.load(Path::new(&paths[1]), num_workers) {
-            eprintln!("Failed to read symtypes from '{}': {}", paths[1], err);
+        if let Err(err) = syms2.load(Path::new(&path2), num_workers) {
+            eprintln!("Failed to read symtypes from '{}': {}", path2, err);
             return Err(());
         }
         syms2
@@ -334,7 +311,7 @@ where
         if let Err(err) = syms.compare_with(&syms2, Path::new("-"), io::stdout(), num_workers) {
             eprintln!(
                 "Failed to compare symtypes from '{}' and '{}': {}",
-                paths[0], paths[1], err
+                path, path2, err
             );
             return Err(());
         }
