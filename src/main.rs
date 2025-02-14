@@ -373,22 +373,14 @@ fn main() {
     };
 
     // Process the specified command.
-    match command.as_str() {
-        "consolidate" => {
-            if do_consolidate(do_timing, args).is_err() {
-                process::exit(1);
-            }
-        }
-        "compare" => {
-            if do_compare(do_timing, args).is_err() {
-                process::exit(1);
-            }
-        }
+    let result = match command.as_str() {
+        "consolidate" => do_consolidate(do_timing, args),
+        "compare" => do_compare(do_timing, args),
         _ => {
             eprintln!("Unrecognized command '{}'", command);
-            process::exit(1);
+            Err(())
         }
-    }
+    };
 
-    process::exit(0);
+    process::exit(if result.is_ok() { 0 } else { 1 });
 }
