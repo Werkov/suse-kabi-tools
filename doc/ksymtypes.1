@@ -1,0 +1,81 @@
+.\" Copyright (C) 2024-2025 SUSE LLC <petr.pavlu@suse.com>
+.\" SPDX-License-Identifier: GPL-2.0-or-later
+.TH KSYMTYPES 1
+.SH NAME
+ksymtypes \- a tool to work with Linux\-kernel symtypes files
+.SH SYNOPSIS
+\fBksymtypes\fR [\fIGENERAL\-OPTION\fR...] {\fBconsolidate\fR | \fBcompare\fR } [\fICOMMAND\-OPTION\fR...]
+.SH DESCRIPTION
+\fBksymtypes\fR is a tool that provides functionality to work with symtypes files. These files
+describe the Application Binary Interface (ABI) of the kernel and its modules. The data is produced
+by \fBgenksyms\fR utilities from the kernel tree.
+.PP
+The tool primarily operates with sets of symtypes files as they are produced during a single build
+of the Linux kernel. Each such set describes the ABI of a specific kernel and its modules. The tool
+refers to this set as a "symtypes corpus".
+.PP
+The provided functionality is split into several integrated commands. The currently available
+commands are \fBconsolidate\fR and \fBcompare\fR. The \fBconsolidate\fR command takes a symtypes
+corpus composed of a set of symtypes files and produces its consolidated variant by merging
+duplicated types. The \fBcompare\fR command shows differences between two symtypes corpuses.
+.SH GENERAL OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+Enable debug output.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display global help information and exit.
+.TP
+\fB\-\-version\fR
+Output version information and exit.
+.SH CONSOLIDATE COMMAND
+\fBksymtypes\fR \fBconsolidate\fR [\fICONSOLIDATE\-OPTION\fR...] \fIPATH\fR
+.PP
+The \fBconsolidate\fR command reads symtypes files from the path specified on the command line,
+consolidates their contents by merging duplicate types and writes the output to the specified file.
+The input path should point to a directory that the command recursively searches for all symtypes
+files. In a typical use case, this will be a build directory of the Linux kernel.
+.PP
+Available options:
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display help information for the command and exit.
+.TP
+\fB\-j\fR \fINUM\fR, \fB\-\-jobs\fR=\fINUM\fR
+Use \fINUM\fR workers to perform the operation simultaneously.
+.TP
+\fB\-o\fR \fIFILE\fR, \fB\-\-output\fR=\fIFILE\fR
+Write the result in \fIFILE\fR, instead of the standard output.
+.SH COMPARE COMMAND
+\fBksymtypes\fR \fBcompare\fR [\fICOMPARE\-OPTION\fR...] \fIPATH\fR \fIPATH2\fR
+.PP
+The \fBcompare\fR command shows differences between two symtypes corpuses. A corpus can be specified
+by a directory containing symtypes files or by a consolidated symtypes file. In a typical use case,
+the first input will point to a reference consolidated symtypes corpus and the second input will
+point to data from a new build of the Linux kernel.
+.PP
+Available options:
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display help information for the command and exit.
+.TP
+\fB\-j\fR \fINUM\fR, \fB\-\-jobs\fR=\fINUM\fR
+Use \fINUM\fR workers to perform the operation simultaneously.
+.SH EXAMPLES
+Build the Linux kernel and create a reference consolidated symtypes corpus:
+.IP
+.EX
+$ cd <linux\-kernel\-directory>
+$ make O=build ...
+$ ksymtypes consolidate \-\-output=reference.kabi build/
+.EE
+.PP
+Build a new version of the Linux kernel and compare its ABI with the previous reference:
+.IP
+.EX
+$ cd <linux\-kernel\-directory> && git pull
+$ make O=build ...
+$ ksymtypes compare reference.kabi build/
+.EE
+.SH SEE ALSO
+\fBksymtypes\fR(5)
