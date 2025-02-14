@@ -46,13 +46,13 @@ fn print_usage() {
         "Usage: ksymtypes [OPTION...] COMMAND\n",
         "\n",
         "Options:\n",
-        "  -d, --debug           enable debug output\n",
-        "  -h, --help            display this help and exit\n",
-        "  --version             output version information and exit\n",
+        "  -d, --debug                   enable debug output\n",
+        "  -h, --help                    display this help and exit\n",
+        "  --version                     output version information and exit\n",
         "\n",
         "Commands:\n",
-        "  consolidate           consolidate symtypes into a single file\n",
-        "  compare               show differences between two symtypes corpuses\n",
+        "  consolidate                   consolidate symtypes into a single file\n",
+        "  compare                       show differences between two symtypes corpuses\n",
     ));
 }
 
@@ -68,21 +68,21 @@ fn print_consolidate_usage() {
         "Consolidate symtypes into a single file.\n",
         "\n",
         "Options:\n",
-        "  -h, --help            print this help\n",
-        "  -j, --jobs=NUM        use NUM workers to perform the operation simultaneously\n",
-        "  -o, --output=FILE     write the result in a specified file, instead of stdout\n",
+        "  -h, --help                    display this help and exit\n",
+        "  -j NUM, --jobs=NUM            use NUM workers to perform the operation\n",
+        "  -o FILE, --output=FILE        write the result in FILE, instead of stdout\n",
     ));
 }
 
 /// Prints the usage message for the `compare` command on `stdout`.
 fn print_compare_usage() {
     print!(concat!(
-        "Usage: ksymtypes compare [OPTION...] PATH1 PATH2\n",
+        "Usage: ksymtypes compare [OPTION...] PATH PATH2\n",
         "Show differences between two symtypes corpuses.\n",
         "\n",
         "Options:\n",
-        "  -h, --help            print this help\n",
-        "  -j, --jobs=NUM        use NUM workers to perform the operation simultaneously\n",
+        "  -h, --help                    display this help and exit\n",
+        "  -j NUM, --jobs=NUM            use NUM workers to perform the operation\n",
     ));
 }
 
