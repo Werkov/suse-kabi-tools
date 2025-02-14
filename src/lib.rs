@@ -6,6 +6,7 @@ use std::path::Path;
 pub mod diff;
 pub mod sym;
 
+/// A type to annotate standard errors with contextual information and to track custom errors.
 #[derive(Debug)]
 pub enum Error {
     IO {
@@ -58,13 +59,16 @@ impl MapIOErr for Result<(), std::io::Error> {
     }
 }
 
+/// Global debugging level.
 pub static DEBUG_LEVEL: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
 
+/// Initializes the global debugging level, can be called only once.
 pub fn init_debug_level(level: usize) {
     assert!(DEBUG_LEVEL.get().is_none());
     DEBUG_LEVEL.get_or_init(|| level);
 }
 
+/// Prints a formatted message to stderr if debugging is enabled.
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
@@ -74,6 +78,7 @@ macro_rules! debug {
     }
 }
 
+/// Asserts that the result is `Ok(())`, indicating success.
 #[cfg(test)]
 #[macro_export]
 macro_rules! assert_ok {
@@ -85,6 +90,7 @@ macro_rules! assert_ok {
     };
 }
 
+/// Creates a `Vec<String>` from a list of string literals.
 #[cfg(test)]
 #[macro_export]
 macro_rules! string_vec {

@@ -1,10 +1,6 @@
 // Copyright (C) 2024 SUSE LLC <petr.pavlu@suse.com>
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-// Implementation of the Myers diff alrogithm:
-// Myers, E.W. An O(ND) difference algorithm and its variations. Algorithmica 1, 251--266 (1986).
-// https://doi.org/10.1007/BF01840446
-
 use crate::MapIOErr;
 use std::fmt::Display;
 use std::io::{prelude::*, BufWriter};
@@ -13,6 +9,10 @@ use std::path::Path;
 
 #[cfg(test)]
 mod tests;
+
+// Implementation of the Myers diff algorithm:
+// Myers, E.W. An O(ND) difference algorithm and its variations. Algorithmica 1, 251--266 (1986).
+// https://doi.org/10.1007/BF01840446
 
 /// A step in the edit script.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -130,6 +130,7 @@ where
     unreachable!();
 }
 
+/// Writes a single diff hunk to the provided output stream.
 fn write_hunk<W>(
     hunk_pos_a: usize,
     hunk_len_a: usize,
@@ -154,6 +155,7 @@ where
     Ok(())
 }
 
+/// Compares `a` with `b` and writes their unified diff to the provided output stream.
 pub fn unified<T, W>(a: &[T], b: &[T], path: &Path, writer: W) -> Result<(), crate::Error>
 where
     T: AsRef<str> + PartialEq + Display,
