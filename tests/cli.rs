@@ -84,10 +84,7 @@ fn compare_cmd_dash_dash() {
 #[test]
 fn consolidate_cmd() {
     // Check that the consolidate command trivially works.
-    let result = ksymtypes_run([
-        "consolidate",
-        "tests/consolidate_cmd",
-    ]);
+    let result = ksymtypes_run(["consolidate", "tests/consolidate_cmd"]);
     assert!(result.status.success());
     assert_eq!(
         result.stdout,
