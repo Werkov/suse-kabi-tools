@@ -164,6 +164,11 @@ struct ParallelLoadContext<'a> {
     files: Mutex<&'a mut SymFiles>,
 }
 
+/// A collection of changes between two corpuses, recording a tuple of each modified type's `name`,
+/// its old `tokens` and its new `tokens`, along with a [`Vec`] of exported symbols affected by the
+/// change.
+type Changes<'a> = HashMap<(&'a str, &'a Tokens, &'a Tokens), Vec<&'a str>>;
+
 impl SymCorpus {
     /// Creates a new empty corpus.
     pub fn new() -> Self {
@@ -925,26 +930,23 @@ impl SymCorpus {
         }
     }
 
-    /// Compares the definition of the symbol `name` in the `self` corpus and the `file` file with
-    /// its definition in the `other` corpus and the `other_file` file.
+    /// Compares the definition of the symbol `name` in (`corpus`, `file`) with its definition in
+    /// (`other_corpus`, `other_file`).
     ///
     /// If the immediate definition of the symbol differs between the two corpuses then it gets
-    /// added in `changes`. The `changes` is a [`HashMap`] which records a tuple of
-    /// (`name`, `tokens`, `other_tokens`) for each modified type together with a [`Vec`] of
-    /// affected top-level `export` symbols.
+    /// added in `changes`. The `export` parameter identifies the top-level exported symbol affected
+    /// by the change.
     ///
     /// The specified symbol is added to `processed_types`, if not already present, and all its type
     /// references get recursively processed in the same way. The `processed_types` is a [`HashMap`]
     /// which tracks all already visited types.
     fn compare_types<'a>(
-        &'a self,
-        other: &'a SymCorpus,
-        file: &SymFile,
-        other_file: &SymFile,
+        (corpus, file): (&'a SymCorpus, &'a SymFile),
+        (other_corpus, other_file): (&'a SymCorpus, &'a SymFile),
         name: &'a str,
         export: &'a str,
         processed: &mut HashSet<String>,
-        changes: &Mutex<HashMap<(&'a str, &'a Tokens, &'a Tokens), Vec<&'a str>>>,
+        changes: &Mutex<Changes<'a>>,
     ) {
         // See if the symbol was already processed.
         if processed.get(name).is_some() {
@@ -953,8 +955,8 @@ impl SymCorpus {
         processed.insert(name.to_string()); // [1]
 
         // Look up how the symbol is defined in each corpus.
-        let tokens = Self::get_type_tokens(self, file, name);
-        let other_tokens = Self::get_type_tokens(other, other_file, name);
+        let tokens = Self::get_type_tokens(corpus, file, name);
+        let other_tokens = Self::get_type_tokens(other_corpus, other_file, name);
 
         // Compare the immediate tokens.
         let is_equal = tokens.len() == other_tokens.len()
@@ -973,10 +975,9 @@ impl SymCorpus {
         if is_equal {
             for token in tokens {
                 if let Token::TypeRef(ref_name) = token {
-                    self.compare_types(
-                        other,
-                        file,
-                        other_file,
+                    Self::compare_types(
+                        (corpus, file),
+                        (other_corpus, other_file),
                         ref_name.as_str(),
                         export,
                         processed,
@@ -990,10 +991,9 @@ impl SymCorpus {
                     for other_token in other_tokens {
                         if let Token::TypeRef(other_ref_name) = other_token {
                             if ref_name == other_ref_name {
-                                self.compare_types(
-                                    other,
-                                    file,
-                                    other_file,
+                                Self::compare_types(
+                                    (corpus, file),
+                                    (other_corpus, other_file),
                                     ref_name.as_str(),
                                     export,
                                     processed,
@@ -1008,12 +1008,12 @@ impl SymCorpus {
         }
     }
 
-    /// Compares symbols in the `self` and `other` corpuses.
+    /// Compares symbols in the `self` and `other_corpus`.
     ///
     /// A human-readable report about all found changes is output into `writer`.
     pub fn compare_with<W>(
         &self,
-        other: &SymCorpus,
+        other_corpus: &SymCorpus,
         path: &Path,
         writer: W,
         num_workers: i32,
@@ -1023,10 +1023,10 @@ impl SymCorpus {
     {
         let mut writer = BufWriter::new(writer);
 
-        // Check for symbols in self but not in other, and vice versa.
+        // Check for symbols in self but not in other_corpus, and vice versa.
         for (exports_a, exports_b, change) in [
-            (&self.exports, &other.exports, "removed"),
-            (&other.exports, &self.exports, "added"),
+            (&self.exports, &other_corpus.exports, "removed"),
+            (&other_corpus.exports, &self.exports, "added"),
         ] {
             for name in exports_a.keys() {
                 if !exports_b.contains_key(name) {
@@ -1039,7 +1039,7 @@ impl SymCorpus {
         let works: Vec<_> = self.exports.iter().collect();
         let next_work_idx = AtomicUsize::new(0);
 
-        let changes = Mutex::new(HashMap::new());
+        let changes = Mutex::new(Changes::new());
 
         thread::scope(|s| {
             for _ in 0..num_workers {
@@ -1051,13 +1051,12 @@ impl SymCorpus {
                     let (name, file_idx) = works[work_idx];
 
                     let file = &self.files[*file_idx];
-                    if let Some(other_file_idx) = other.exports.get(name) {
-                        let other_file = &other.files[*other_file_idx];
+                    if let Some(other_file_idx) = other_corpus.exports.get(name) {
+                        let other_file = &other_corpus.files[*other_file_idx];
                         let mut processed = HashSet::new();
-                        self.compare_types(
-                            other,
-                            file,
-                            other_file,
+                        Self::compare_types(
+                            (self, file),
+                            (other_corpus, other_file),
                             name,
                             name,
                             &mut processed,
