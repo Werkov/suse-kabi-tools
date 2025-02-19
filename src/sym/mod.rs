@@ -158,7 +158,8 @@ pub struct SymCorpus {
     files: SymFiles,
 }
 
-struct ParallelLoadContext<'a> {
+/// A helper struct to provide synchronized access to `SymCorpus` data during parallel loading.
+struct LoadContext<'a> {
     types: RwLock<&'a mut Types>,
     exports: Mutex<&'a mut Exports>,
     files: Mutex<&'a mut SymFiles>,
@@ -267,7 +268,7 @@ impl SymCorpus {
         // Load data from the files.
         let next_work_idx = AtomicUsize::new(0);
 
-        let load_context = ParallelLoadContext {
+        let load_context = LoadContext {
             types: RwLock::new(&mut self.types),
             exports: Mutex::new(&mut self.exports),
             files: Mutex::new(&mut self.files),
@@ -313,7 +314,7 @@ impl SymCorpus {
     where
         R: Read,
     {
-        let load_context = ParallelLoadContext {
+        let load_context = LoadContext {
             types: RwLock::new(&mut self.types),
             exports: Mutex::new(&mut self.exports),
             files: Mutex::new(&mut self.files),
@@ -325,11 +326,7 @@ impl SymCorpus {
     }
 
     /// Loads symtypes data from a specified reader.
-    fn load_inner<R>(
-        path: &Path,
-        reader: R,
-        load_context: &ParallelLoadContext,
-    ) -> Result<(), crate::Error>
+    fn load_inner<R>(path: &Path, reader: R, load_context: &LoadContext) -> Result<(), crate::Error>
     where
         R: Read,
     {
@@ -562,7 +559,7 @@ impl SymCorpus {
 
     /// Adds the given type definition to the corpus if not already present, and returns its variant
     /// index.
-    fn merge_type(type_name: &str, tokens: Tokens, load_context: &ParallelLoadContext) -> usize {
+    fn merge_type(type_name: &str, tokens: Tokens, load_context: &LoadContext) -> usize {
         let mut types = load_context.types.write().unwrap();
         match types.get_mut(type_name) {
             Some(variants) => {
@@ -587,7 +584,7 @@ impl SymCorpus {
         type_name: &str,
         file_idx: usize,
         line_idx: usize,
-        load_context: &ParallelLoadContext,
+        load_context: &LoadContext,
     ) -> Result<(), crate::Error> {
         if !Self::is_export(type_name) {
             return Ok(());
