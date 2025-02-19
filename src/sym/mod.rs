@@ -24,6 +24,8 @@ mod tests_format;
 //     this lookup but insert the key as String if it is missing. Depending on a specific case and
 //     what is likely to produce less overhead, the code opts to turn the key already to a String on
 //     the first lookup, or opts to run the search again if the key is missing and needs inserting.
+// [2] HashSet in the stable Rust (1.84) doesn't provide the entry functionality. It is
+//     a nightly-only experimental API and so not used by the module.
 
 /// A token used in the description of a type.
 #[derive(Eq, PartialEq, Hash, Ord, PartialOrd)]
@@ -942,14 +944,14 @@ impl SymCorpus {
         (other_corpus, other_file): (&'a SymCorpus, &'a SymFile),
         name: &'a str,
         export: &'a str,
-        processed: &mut HashSet<String>,
+        processed: &mut HashSet<&'a str>,
         changes: &Mutex<Changes<'a>>,
     ) {
         // See if the symbol was already processed.
         if processed.get(name).is_some() {
             return;
         }
-        processed.insert(name.to_string()); // [1]
+        processed.insert(name); // [2]
 
         // Look up how the symbol is defined in each corpus.
         let tokens = Self::get_type_tokens(corpus, file, name);
