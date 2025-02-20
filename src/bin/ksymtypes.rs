@@ -1,8 +1,8 @@
 // Copyright (C) 2024 SUSE LLC <petr.pavlu@suse.com>
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use ksymtypes::sym::SymCorpus;
-use ksymtypes::{debug, init_debug_level};
+use suse_kabi_tools::sym::SymCorpus;
+use suse_kabi_tools::{debug, init_debug_level};
 use std::path::Path;
 use std::time::Instant;
 use std::{env, io, process};
