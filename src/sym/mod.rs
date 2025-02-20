@@ -351,7 +351,7 @@ impl SymCorpus {
         let mut remap: HashMap<String, HashMap<String, usize>> = HashMap::new();
 
         // Read all content from the file.
-        let lines = Self::read_lines(path, reader)?;
+        let lines = read_lines(path, reader)?;
 
         // Detect whether the input is a single or consolidated symtypes file.
         let mut is_consolidated = false;
@@ -420,7 +420,7 @@ impl SymCorpus {
             // Parse the base name and any variant name/index, which is appended as a suffix after
             // the `@` character.
             let (base_name, orig_variant_name) = if is_consolidated {
-                Self::split_type_name(name)
+                split_type_name(name)
             } else {
                 (name, &name[name.len()..])
             };
@@ -473,7 +473,7 @@ impl SymCorpus {
             let mut records = FileRecords::new();
             for type_name in words {
                 // Parse the base name and variant name/index.
-                let (base_name, orig_variant_name) = Self::split_type_name(type_name);
+                let (base_name, orig_variant_name) = split_type_name(type_name);
 
                 // Look up how the variant got remapped.
                 let variant_idx = *remap
@@ -516,37 +516,6 @@ impl SymCorpus {
         Ok(())
     }
 
-    /// Reads data from a specified reader and splits its content into a lines vector.
-    fn read_lines<R>(path: &Path, reader: R) -> Result<Vec<String>, crate::Error>
-    where
-        R: Read,
-    {
-        let reader = BufReader::new(reader);
-        let mut lines = Vec::new();
-        for maybe_line in reader.lines() {
-            match maybe_line {
-                Ok(line) => lines.push(line),
-                Err(err) => {
-                    return Err(crate::Error::new_io(
-                        &format!("Failed to read data from file '{}'", path.display()),
-                        err,
-                    ))
-                }
-            };
-        }
-        Ok(lines)
-    }
-
-    /// Splits a given type name into a tuple of two `&str`, with the first one being the base name
-    /// and the second one containing the variant name/index (or an empty string of no variant was
-    /// present).
-    fn split_type_name(type_name: &str) -> (&str, &str) {
-        match type_name.rfind('@') {
-            Some(i) => (&type_name[..i], &type_name[i + 1..]),
-            None => (type_name, &type_name[type_name.len()..]),
-        }
-    }
-
     /// Adds the given type definition to the corpus if not already present, and returns its variant
     /// index.
     fn merge_type(type_name: &str, tokens: Tokens, load_context: &LoadContext) -> usize {
@@ -576,7 +545,7 @@ impl SymCorpus {
         line_idx: usize,
         load_context: &LoadContext,
     ) -> Result<(), crate::Error> {
-        if !Self::is_export(type_name) {
+        if !is_export_name(type_name) {
             return Ok(());
         }
 
@@ -679,15 +648,6 @@ impl SymCorpus {
         }
 
         Ok(())
-    }
-
-    /// Returns whether the specified `name` is an export definition, as opposed to a <X>#<foo> type
-    /// definition.
-    fn is_export(name: &str) -> bool {
-        match name.chars().nth(1) {
-            Some(ch) => ch != '#',
-            None => true,
-        }
     }
 
     /// Processes a single symbol specified in a given file and adds it to the consolidated output.
@@ -801,7 +761,7 @@ impl SymCorpus {
             // Collect sorted exports in the file which are the roots for consolidation.
             let mut exports = Vec::new();
             for name in symfile.records.keys() {
-                if Self::is_export(name) {
+                if is_export_name(name) {
                     exports.push(name.as_str());
                 }
             }
@@ -828,7 +788,7 @@ impl SymCorpus {
 
         // Sort all output types and write them to the specified file.
         let mut sorted_records = output_types.into_iter().collect::<Vec<_>>();
-        sorted_records.sort_by_key(|(name, _remap)| (Self::is_export(name), *name));
+        sorted_records.sort_by_key(|(name, _remap)| (is_export_name(name), *name));
 
         for (name, remap) in sorted_records {
             let variants = self.types.get(name).unwrap();
@@ -861,7 +821,7 @@ impl SymCorpus {
             // TODO Sorting, make same as above.
             let mut sorted_types = file_types[i]
                 .iter()
-                .map(|(&name, &remap_idx)| (Self::is_export(name), name, remap_idx))
+                .map(|(&name, &remap_idx)| (is_export_name(name), name, remap_idx))
                 .collect::<Vec<_>>();
             sorted_types.sort();
 
@@ -872,7 +832,7 @@ impl SymCorpus {
             for &(_, name, remap_idx) in &sorted_types {
                 if remap_idx != usize::MAX {
                     write!(writer, " {}@{}", name, remap_idx).map_io_err(path)?;
-                } else if Self::is_export(name) {
+                } else if is_export_name(name) {
                     write!(writer, " {}", name).map_io_err(path)?;
                 }
             }
@@ -1070,6 +1030,27 @@ impl SymCorpus {
     }
 }
 
+/// Reads data from a specified reader and returns its content as a [`Vec`] of `String` lines.
+fn read_lines<R>(path: &Path, reader: R) -> Result<Vec<String>, crate::Error>
+where
+    R: Read,
+{
+    let reader = BufReader::new(reader);
+    let mut lines = Vec::new();
+    for maybe_line in reader.lines() {
+        match maybe_line {
+            Ok(line) => lines.push(line),
+            Err(err) => {
+                return Err(crate::Error::new_io(
+                    &format!("Failed to read data from file '{}'", path.display()),
+                    err,
+                ))
+            }
+        };
+    }
+    Ok(lines)
+}
+
 /// Reads words from a given iterator and converts them to `Tokens`.
 fn words_into_tokens<'a, I>(words: &mut I) -> Tokens
 where
@@ -1090,6 +1071,25 @@ where
         });
     }
     tokens
+}
+
+/// Returns whether the specified type name is an export definition, as opposed to a <X>#<foo> type
+/// definition.
+fn is_export_name(type_name: &str) -> bool {
+    match type_name.chars().nth(1) {
+        Some(ch) => ch != '#',
+        None => true,
+    }
+}
+
+/// Splits the specified type name into a tuple of two string slices, with the first one being the
+/// base name and the second one containing the variant name/index (or an empty string if no variant
+/// was present).
+fn split_type_name(type_name: &str) -> (&str, &str) {
+    match type_name.rfind('@') {
+        Some(i) => (&type_name[..i], &type_name[i + 1..]),
+        None => (type_name, &type_name[type_name.len()..]),
+    }
 }
 
 /// Processes tokens describing a type and produces its pretty-formatted version as a [`Vec`] of
