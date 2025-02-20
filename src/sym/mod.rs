@@ -197,28 +197,17 @@ impl SymCorpus {
     /// The `path` can point to a single `.symtypes` file or a directory. In the latter case, the
     /// function recursively collects all `.symtypes` in that directory and loads them.
     pub fn load(&mut self, path: &Path, num_workers: i32) -> Result<(), crate::Error> {
-        let paths = vec![path];
-        self.load_multiple(&paths, num_workers)
-    }
+        // Determine if the input is a directory tree or a single symtypes file.
+        let md = fs::metadata(path).map_err(|err| {
+            crate::Error::new_io(&format!("Failed to query path '{}'", path.display()), err)
+        })?;
 
-    /// Loads symtypes data from given locations.
-    ///
-    /// The `paths` can point to a single `.symtypes` file or a directory. In the latter case, the
-    /// function recursively collects all `.symtypes` in that directory and loads them.
-    pub fn load_multiple(&mut self, paths: &[&Path], num_workers: i32) -> Result<(), crate::Error> {
+        // Collect recursively all symtypes if it is a directory, or push the single file.
         let mut symfiles = Vec::new();
-        for path in paths {
-            // Determine if the input is a directory tree or a single symtypes file.
-            let md = fs::metadata(path).map_err(|err| {
-                crate::Error::new_io(&format!("Failed to query path '{}'", path.display()), err)
-            })?;
-
-            // Collect recursively all symtypes if it is a directory, or push the single file.
-            if md.is_dir() {
-                Self::collect_symfiles(path, &mut symfiles)?;
-            } else {
-                symfiles.push(path.to_path_buf());
-            }
+        if md.is_dir() {
+            Self::collect_symfiles(path, &mut symfiles)?;
+        } else {
+            symfiles.push(path.to_path_buf());
         }
 
         // Load all files.
