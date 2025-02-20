@@ -7,7 +7,7 @@ use std::path::Path;
 use std::time::Instant;
 use std::{env, io, process};
 
-/// A type to measure elapsed time for some operation.
+/// An elapsed timer to measure time of some operation.
 ///
 /// The time is measured between when the object is instantiated and when it is dropped. A message
 /// with the elapsed time is output when the object is dropped.
@@ -40,7 +40,7 @@ impl Drop for Timing {
     }
 }
 
-/// Prints the global usage message on `stdout`.
+/// Prints the global usage message on the standard output.
 fn print_usage() {
     print!(concat!(
         "Usage: ksymtypes [OPTION...] COMMAND\n",
@@ -56,12 +56,12 @@ fn print_usage() {
     ));
 }
 
-/// Prints the version information on `stdout`.
+/// Prints the version information on the standard output.
 fn print_version() {
     println!("ksymtypes {}", env!("CARGO_PKG_VERSION"));
 }
 
-/// Prints the usage message for the `consolidate` command on `stdout`.
+/// Prints the usage message for the `consolidate` command on the standard output.
 fn print_consolidate_usage() {
     print!(concat!(
         "Usage: ksymtypes consolidate [OPTION...] PATH\n",
@@ -74,7 +74,7 @@ fn print_consolidate_usage() {
     ));
 }
 
-/// Prints the usage message for the `compare` command on `stdout`.
+/// Prints the usage message for the `compare` command on the standard output.
 fn print_compare_usage() {
     print!(concat!(
         "Usage: ksymtypes compare [OPTION...] PATH PATH2\n",

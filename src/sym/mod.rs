@@ -1030,7 +1030,7 @@ impl SymCorpus {
     }
 }
 
-/// Reads data from a specified reader and returns its content as a [`Vec`] of `String` lines.
+/// Reads data from a specified reader and returns its content as a [`Vec`] of [`String`] lines.
 fn read_lines<R>(path: &Path, reader: R) -> Result<Vec<String>, crate::Error>
 where
     R: Read,
@@ -1073,8 +1073,8 @@ where
     tokens
 }
 
-/// Returns whether the specified type name is an export definition, as opposed to a <X>#<foo> type
-/// definition.
+/// Returns whether the specified type name is an export definition, as opposed to a `<X>#<foo>`
+/// type definition.
 fn is_export_name(type_name: &str) -> bool {
     match type_name.chars().nth(1) {
         Some(ch) => ch != '#',

@@ -6,7 +6,8 @@ use std::path::Path;
 pub mod diff;
 pub mod sym;
 
-/// A type to annotate standard errors with contextual information and to track custom errors.
+/// An error type for the crate, annotating standard errors with contextual information and
+/// providing custom errors.
 #[derive(Debug)]
 pub enum Error {
     IO {
@@ -17,6 +18,7 @@ pub enum Error {
 }
 
 impl Error {
+    /// Creates a new `Error::IO`.
     fn new_io(desc: &str, io_err: std::io::Error) -> Self {
         Error::IO {
             desc: desc.to_string(),
@@ -24,6 +26,7 @@ impl Error {
         }
     }
 
+    /// Creates a new `Error::Parse`.
     fn new_parse(desc: &str) -> Self {
         Error::Parse(desc.to_string())
     }
@@ -43,7 +46,8 @@ impl std::fmt::Display for Error {
     }
 }
 
-/// A helper extension trait to map std::io::Error to crate::Error(), as write!(...).map_io_error().
+/// A helper extension trait to map [`std::io::Error`] to [`crate::Error`], as
+/// `write!(...).map_io_error()`.
 trait MapIOErr {
     fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
 }
@@ -68,7 +72,7 @@ pub fn init_debug_level(level: usize) {
     DEBUG_LEVEL.get_or_init(|| level);
 }
 
-/// Prints a formatted message to stderr if debugging is enabled.
+/// Prints a formatted message to the standard error if debugging is enabled.
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
@@ -78,8 +82,8 @@ macro_rules! debug {
     }
 }
 
-/// Asserts that the result is `Ok(())`, indicating success.
-#[cfg(test)]
+/// Asserts that the value is [`Ok(())`](Ok), indicating success.
+#[cfg(any(test, doc))]
 #[macro_export]
 macro_rules! assert_ok {
     ($result:expr) => {
@@ -90,8 +94,8 @@ macro_rules! assert_ok {
     };
 }
 
-/// Creates a `Vec<String>` from a list of string literals.
-#[cfg(test)]
+/// Creates a [`Vec`] of [`String`] from a list of string literals.
+#[cfg(any(test, doc))]
 #[macro_export]
 macro_rules! string_vec {
       ($($x:expr),* $(,)?) => (vec![$($x.to_string()),*]);
