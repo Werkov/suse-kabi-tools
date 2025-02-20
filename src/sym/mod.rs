@@ -167,10 +167,20 @@ struct LoadContext<'a> {
     files: Mutex<&'a mut SymFiles>,
 }
 
-/// A collection of changes between two corpuses, recording a tuple of each modified type's `name`,
-/// its old `tokens` and its new `tokens`, along with a [`Vec`] of exported symbols affected by the
-/// change.
-type Changes<'a> = HashMap<(&'a str, &'a Tokens, &'a Tokens), Vec<&'a str>>;
+/// Type names to be present in the consolidated output, along with a mapping from their internal
+/// symbol variant indices to the output variant indices.
+type ConsolidateOutputTypes<'a> = HashMap<&'a str, HashMap<usize, usize>>;
+
+/// Type names processed during consolidation for a specific file, providing for each type their
+/// output variant index.
+type ConsolidateFileTypes<'a> = HashMap<&'a str, usize>;
+
+/// Changes between two corpuses, recording a tuple of each modified type's `name`, its old `tokens`
+/// and its new `tokens`, along with a [`Vec`] of exported symbols affected by the change.
+type CompareChangedTypes<'a> = HashMap<(&'a str, &'a Tokens, &'a Tokens), Vec<&'a str>>;
+
+/// Type names processed during comparison for a specific file.
+type CompareFileTypes<'a> = HashSet<&'a str>;
 
 impl SymCorpus {
     /// Creates a new empty corpus.
@@ -718,17 +728,13 @@ impl SymCorpus {
     /// Processes a single symbol specified in a given file and adds it to the consolidated output.
     ///
     /// The specified symbol is added to `output_types` and `processed_types`, if not already
-    /// present, and all its type references get recursively processed in the same way. The
-    /// `output_types` is a [`HashMap`] which records all symbols which should appear on the output
-    /// together with a mapping from the internal symbol variant index to the output variant index.
-    /// The `processed_types` is a [`HashMap`] which tracks all symbols in the current file and
-    /// their output variant indices.
+    /// present, and all its type references get recursively processed in the same way.
     fn consolidate_type<'a>(
         &'a self,
         symfile: &SymFile,
         name: &'a str,
-        output_types: &mut HashMap<&'a str, HashMap<usize, usize>>,
-        processed_types: &mut HashMap<&'a str, usize>,
+        output_types: &mut ConsolidateOutputTypes<'a>,
+        processed_types: &mut ConsolidateFileTypes<'a>,
     ) {
         // See if the symbol was already processed.
         let processed_entry = match processed_types.entry(name) {
@@ -816,8 +822,8 @@ impl SymCorpus {
 
         // Initialize output data. Variable output_types records all output symbols, file_types
         // provides per-file information.
-        let mut output_types = HashMap::new();
-        let mut file_types = vec![HashMap::new(); self.files.len()];
+        let mut output_types = ConsolidateOutputTypes::new();
+        let mut file_types = vec![ConsolidateFileTypes::new(); self.files.len()];
 
         // Sort all files in the corpus by their path.
         let mut file_indices = (0..self.files.len()).collect::<Vec<_>>();
@@ -837,7 +843,7 @@ impl SymCorpus {
             exports.sort();
 
             // Add the exported types and their needed types to the output.
-            let mut processed_types = HashMap::new();
+            let mut processed_types = ConsolidateFileTypes::new();
             for name in &exports {
                 self.consolidate_type(symfile, name, &mut output_types, &mut processed_types);
             }
@@ -937,15 +943,14 @@ impl SymCorpus {
     /// by the change.
     ///
     /// The specified symbol is added to `processed_types`, if not already present, and all its type
-    /// references get recursively processed in the same way. The `processed_types` is a [`HashMap`]
-    /// which tracks all already visited types.
+    /// references get recursively processed in the same way.
     fn compare_types<'a>(
         (corpus, file): (&'a SymCorpus, &'a SymFile),
         (other_corpus, other_file): (&'a SymCorpus, &'a SymFile),
         name: &'a str,
         export: &'a str,
-        processed: &mut HashSet<&'a str>,
-        changes: &Mutex<Changes<'a>>,
+        changes: &Mutex<CompareChangedTypes<'a>>,
+        processed: &mut CompareFileTypes<'a>,
     ) {
         // See if the symbol was already processed.
         if processed.get(name).is_some() {
@@ -979,8 +984,8 @@ impl SymCorpus {
                         (other_corpus, other_file),
                         ref_name.as_str(),
                         export,
-                        processed,
                         changes,
+                        processed,
                     );
                 }
             }
@@ -995,8 +1000,8 @@ impl SymCorpus {
                                     (other_corpus, other_file),
                                     ref_name.as_str(),
                                     export,
-                                    processed,
                                     changes,
+                                    processed,
                                 );
                                 break;
                             }
@@ -1038,7 +1043,7 @@ impl SymCorpus {
         let works: Vec<_> = self.exports.iter().collect();
         let next_work_idx = AtomicUsize::new(0);
 
-        let changes = Mutex::new(Changes::new());
+        let changes = Mutex::new(CompareChangedTypes::new());
 
         thread::scope(|s| {
             for _ in 0..num_workers {
@@ -1052,14 +1057,14 @@ impl SymCorpus {
                     let file = &self.files[*file_idx];
                     if let Some(other_file_idx) = other_corpus.exports.get(name) {
                         let other_file = &other_corpus.files[*other_file_idx];
-                        let mut processed = HashSet::new();
+                        let mut processed = CompareFileTypes::new();
                         Self::compare_types(
                             (self, file),
                             (other_corpus, other_file),
                             name,
                             name,
-                            &mut processed,
                             &changes,
+                            &mut processed,
                         );
                     }
                 });
