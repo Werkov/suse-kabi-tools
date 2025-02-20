@@ -415,7 +415,7 @@ impl SymCorpus {
             // Handle a type/export record.
 
             // Turn the remaining words into tokens.
-            let tokens = Self::words_into_tokens(&mut words);
+            let tokens = words_into_tokens(&mut words);
 
             // Parse the base name and any variant name/index, which is appended as a suffix after
             // the `@` character.
@@ -535,28 +535,6 @@ impl SymCorpus {
             };
         }
         Ok(lines)
-    }
-
-    /// Reads words from a given iterator and converts them to a [`Vec`] of [`Token`]s.
-    fn words_into_tokens<'a, I>(words: &mut I) -> Vec<Token>
-    where
-        I: Iterator<Item = &'a str>,
-    {
-        let mut tokens = Vec::new();
-        for word in words {
-            let mut is_typeref = false;
-            if let Some(ch) = word.chars().nth(1) {
-                if ch == '#' {
-                    is_typeref = true;
-                }
-            }
-            tokens.push(if is_typeref {
-                Token::new_typeref(word)
-            } else {
-                Token::new_atom(word)
-            });
-        }
-        tokens
     }
 
     /// Splits a given type name into a tuple of two `&str`, with the first one being the base name
@@ -1090,6 +1068,28 @@ impl SymCorpus {
 
         Ok(())
     }
+}
+
+/// Reads words from a given iterator and converts them to `Tokens`.
+fn words_into_tokens<'a, I>(words: &mut I) -> Tokens
+where
+    I: Iterator<Item = &'a str>,
+{
+    let mut tokens = Tokens::new();
+    for word in words {
+        let mut is_typeref = false;
+        if let Some(ch) = word.chars().nth(1) {
+            if ch == '#' {
+                is_typeref = true;
+            }
+        }
+        tokens.push(if is_typeref {
+            Token::new_typeref(word)
+        } else {
+            Token::new_atom(word)
+        });
+    }
+    tokens
 }
 
 /// Processes tokens describing a type and produces its pretty-formatted version as a [`Vec`] of
