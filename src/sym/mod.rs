@@ -1095,20 +1095,6 @@ fn split_type_name(type_name: &str) -> (&str, &str) {
 /// Processes tokens describing a type and produces its pretty-formatted version as a [`Vec`] of
 /// [`String`] lines.
 fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
-    // Define a helper extension trait to allow appending a specific indentation to a string, as
-    // string.push_indent().
-    trait PushIndentExt {
-        fn push_indent(&mut self, indent: usize);
-    }
-
-    impl PushIndentExt for String {
-        fn push_indent(&mut self, indent: usize) {
-            for _ in 0..indent {
-                self.push('\t');
-            }
-        }
-    }
-
     // Iterate over all tokens and produce the formatted output.
     let mut res = Vec::new();
     let mut indent: usize = 0;
@@ -1128,7 +1114,9 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
         // Insert any newline indentation.
         let is_first = line.is_empty();
         if is_first {
-            line.push_indent(indent);
+            for _ in 0..indent {
+                line.push('\t');
+            }
         }
 
         // Check if the token is special and append it appropriately to the output.
