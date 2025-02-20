@@ -576,7 +576,7 @@ impl SymCorpus {
         match types.get_mut(type_name) {
             Some(variants) => {
                 for (i, variant) in variants.iter().enumerate() {
-                    if Self::are_tokens_eq(&tokens, variant) {
+                    if tokens == *variant {
                         return i;
                     }
                 }
@@ -701,19 +701,6 @@ impl SymCorpus {
         }
 
         Ok(())
-    }
-
-    /// Compares two sets of `Tokens` and returns whether they are equal.
-    fn are_tokens_eq(a: &Tokens, b: &Tokens) -> bool {
-        if a.len() != b.len() {
-            return false;
-        }
-        for i in 0..a.len() {
-            if a[i] != b[i] {
-                return false;
-            };
-        }
-        true
     }
 
     /// Returns whether the specified `name` is an export definition, as opposed to a <X>#<foo> type
