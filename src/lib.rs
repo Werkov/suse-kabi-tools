@@ -68,20 +68,14 @@ struct PathFile {
 }
 
 impl PathFile {
-    pub fn open<P>(path: P) -> io::Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn open<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         Ok(Self {
             path: path.as_ref().to_path_buf(),
             file: File::open(path)?,
         })
     }
 
-    pub fn create<P>(path: P) -> io::Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn create<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         Ok(Self {
             path: path.as_ref().to_path_buf(),
             file: File::create(path)?,

@@ -12,11 +12,7 @@ struct RunResult {
     stderr: String,
 }
 
-fn ksymtypes_run<I, S>(args: I) -> RunResult
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
+fn ksymtypes_run<I: IntoIterator<Item = S>, S: AsRef<OsStr>>(args: I) -> RunResult {
     let output = Command::new(env!("CARGO_BIN_EXE_ksymtypes"))
         .args(args)
         .output()

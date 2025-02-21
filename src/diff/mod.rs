@@ -60,10 +60,7 @@ struct DiagonalState {
 
 /// Compares `a` with `b` and returns an edit script describing how to transform the former to the
 /// latter.
-fn myers<T>(a: &[T], b: &[T]) -> EditScript
-where
-    T: AsRef<str> + PartialEq,
-{
+fn myers<T: AsRef<str> + PartialEq>(a: &[T], b: &[T]) -> EditScript {
     let max = a.len() + b.len();
     let mut v = IVec(vec![
         DiagonalState {
@@ -130,17 +127,14 @@ where
 }
 
 /// Writes a single diff hunk to the provided output stream.
-fn write_hunk<W>(
+fn write_hunk<W: Write>(
     hunk_pos_a: usize,
     hunk_len_a: usize,
     hunk_pos_b: usize,
     hunk_len_b: usize,
     hunk_data: &[String],
     writer: &mut BufWriter<W>,
-) -> Result<(), crate::Error>
-where
-    W: Write,
-{
+) -> Result<(), crate::Error> {
     let err_desc = "Failed to write a diff hunk";
 
     writeln!(
@@ -156,11 +150,11 @@ where
 }
 
 /// Compares `a` with `b` and writes their unified diff to the provided output stream.
-pub fn unified<T, W>(a: &[T], b: &[T], writer: W) -> Result<(), crate::Error>
-where
-    T: AsRef<str> + PartialEq + Display,
-    W: Write,
-{
+pub fn unified<T: AsRef<str> + PartialEq + Display, W: Write>(
+    a: &[T],
+    b: &[T],
+    writer: W,
+) -> Result<(), crate::Error> {
     let mut writer = BufWriter::new(writer);
 
     // Diff the two inputs and calculate the edit script.

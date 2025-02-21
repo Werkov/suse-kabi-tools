@@ -91,15 +91,12 @@ fn print_compare_usage() {
 /// When the `arg` matches the `short` or `long` variant, the function returns [`Ok(Some(String))`]
 /// with the option value. Otherwise, [`Ok(None)`] is returned when the `arg` doesn't match, or
 /// [`Err`] in case of an error.
-fn handle_value_option<I>(
+fn handle_value_option<I: Iterator<Item = String>>(
     arg: &str,
     args: &mut I,
     short: &str,
     long: &str,
-) -> Result<Option<String>, ()>
-where
-    I: Iterator<Item = String>,
-{
+) -> Result<Option<String>, ()> {
     // Handle '-<short> <value>' and '--<long> <value>'.
     if arg == short || arg == long {
         match args.next() {
@@ -128,10 +125,10 @@ where
 
 /// Handles the `-j`/`--jobs` option which specifies the number of workers to perform a given
 /// operation simultaneously.
-fn handle_jobs_option<I>(arg: &str, args: &mut I) -> Result<Option<i32>, ()>
-where
-    I: Iterator<Item = String>,
-{
+fn handle_jobs_option<I: Iterator<Item = String>>(
+    arg: &str,
+    args: &mut I,
+) -> Result<Option<i32>, ()> {
     if let Some(value) = handle_value_option(arg, args, "-j", "--jobs")? {
         match value.parse::<i32>() {
             Ok(jobs) => {
@@ -152,10 +149,7 @@ where
 }
 
 /// Handles the `consolidate` command which consolidates symtypes into a single file.
-fn do_consolidate<I>(do_timing: bool, args: I) -> Result<(), ()>
-where
-    I: IntoIterator<Item = String>,
-{
+fn do_consolidate<I: IntoIterator<Item = String>>(do_timing: bool, args: I) -> Result<(), ()> {
     // Parse specific command options.
     let mut args = args.into_iter();
     let mut output = "-".to_string();
@@ -230,10 +224,7 @@ where
 }
 
 /// Handles the `compare` command which shows differences between two symtypes corpuses.
-fn do_compare<I>(do_timing: bool, args: I) -> Result<(), ()>
-where
-    I: IntoIterator<Item = String>,
-{
+fn do_compare<I: IntoIterator<Item = String>>(do_timing: bool, args: I) -> Result<(), ()> {
     // Parse specific command options.
     let mut args = args.into_iter();
     let mut num_workers = 1;

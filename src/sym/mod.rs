@@ -194,10 +194,7 @@ impl SymCorpus {
     ///
     /// The `path` can point to a single `.symtypes` file or a directory. In the latter case, the
     /// function recursively collects all `.symtypes` in that directory and loads them.
-    pub fn load<P>(&mut self, path: P, num_workers: i32) -> Result<(), crate::Error>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn load<P: AsRef<Path>>(&mut self, path: P, num_workers: i32) -> Result<(), crate::Error> {
         let path = path.as_ref();
 
         // Determine if the input is a directory tree or a single symtypes file.
@@ -219,15 +216,11 @@ impl SymCorpus {
     }
 
     /// Collects recursively all `.symtypes` files under the given root path and its subpath.
-    fn collect_symfiles<P, Q>(
+    fn collect_symfiles<P: AsRef<Path>, Q: AsRef<Path>>(
         root: P,
         sub_path: Q,
         symfiles: &mut Vec<PathBuf>,
-    ) -> Result<(), crate::Error>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-    {
+    ) -> Result<(), crate::Error> {
         let root = root.as_ref();
         let sub_path = sub_path.as_ref();
 
@@ -280,16 +273,12 @@ impl SymCorpus {
     }
 
     /// Loads all specified `.symtypes` files.
-    fn load_symfiles<P, Q>(
+    fn load_symfiles<P: AsRef<Path>, Q: AsRef<Path> + Sync>(
         &mut self,
         root: P,
         symfiles: &[Q],
         num_workers: i32,
-    ) -> Result<(), crate::Error>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path> + Sync,
-    {
+    ) -> Result<(), crate::Error> {
         let root = root.as_ref();
 
         // Load data from the files.
@@ -338,11 +327,11 @@ impl SymCorpus {
     /// Loads symtypes data from a specified reader.
     ///
     /// The `path` should point to a `.symtypes` file name, indicating the origin of the data.
-    pub fn load_buffer<P, R>(&mut self, path: P, reader: R) -> Result<(), crate::Error>
-    where
-        P: AsRef<Path>,
-        R: Read,
-    {
+    pub fn load_buffer<P: AsRef<Path>, R: Read>(
+        &mut self,
+        path: P,
+        reader: R,
+    ) -> Result<(), crate::Error> {
         let load_context = LoadContext {
             types: RwLock::new(&mut self.types),
             exports: Mutex::new(&mut self.exports),
@@ -355,11 +344,11 @@ impl SymCorpus {
     }
 
     /// Loads symtypes data from a specified reader.
-    fn load_inner<P, R>(path: P, reader: R, load_context: &LoadContext) -> Result<(), crate::Error>
-    where
-        P: AsRef<Path>,
-        R: Read,
-    {
+    fn load_inner<P: AsRef<Path>, R: Read>(
+        path: P,
+        reader: R,
+        load_context: &LoadContext,
+    ) -> Result<(), crate::Error> {
         let path = path.as_ref();
         debug!("Loading '{}'", path.display());
 
@@ -739,10 +728,7 @@ impl SymCorpus {
     }
 
     /// Writes the corpus in the consolidated form into a specified file.
-    pub fn write_consolidated<P>(&self, path: P) -> Result<(), crate::Error>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn write_consolidated<P: AsRef<Path>>(&self, path: P) -> Result<(), crate::Error> {
         let path = path.as_ref();
 
         // Open the output file.
@@ -764,10 +750,7 @@ impl SymCorpus {
     }
 
     /// Writes the corpus in the consolidated form to the provided output stream.
-    pub fn write_consolidated_buffer<W>(&self, writer: W) -> Result<(), crate::Error>
-    where
-        W: Write,
-    {
+    pub fn write_consolidated_buffer<W: Write>(&self, writer: W) -> Result<(), crate::Error> {
         let mut writer = BufWriter::new(writer);
 
         // Initialize output data. Variable output_types records all output symbols, file_types
@@ -967,15 +950,12 @@ impl SymCorpus {
     /// Compares symbols in the `self` and `other_corpus`.
     ///
     /// A human-readable report about all found changes is written to the provided output stream.
-    pub fn compare_with<W>(
+    pub fn compare_with<W: Write>(
         &self,
         other_corpus: &SymCorpus,
         writer: W,
         num_workers: i32,
-    ) -> Result<(), crate::Error>
-    where
-        W: Write,
-    {
+    ) -> Result<(), crate::Error> {
         let mut writer = BufWriter::new(writer);
         let err_desc = "Failed to write a comparison result";
 
@@ -1059,10 +1039,7 @@ impl SymCorpus {
 }
 
 /// Reads data from a specified reader and returns its content as a [`Vec`] of [`String`] lines.
-fn read_lines<R>(reader: R) -> io::Result<Vec<String>>
-where
-    R: Read,
-{
+fn read_lines<R: Read>(reader: R) -> io::Result<Vec<String>> {
     let reader = BufReader::new(reader);
     let mut lines = Vec::new();
     for maybe_line in reader.lines() {
@@ -1075,10 +1052,7 @@ where
 }
 
 /// Reads words from a given iterator and converts them to `Tokens`.
-fn words_into_tokens<'a, I>(words: &mut I) -> Tokens
-where
-    I: Iterator<Item = &'a str>,
-{
+fn words_into_tokens<'a, I: Iterator<Item = &'a str>>(words: &mut I) -> Tokens {
     let mut tokens = Tokens::new();
     for word in words {
         let mut is_typeref = false;
@@ -1187,10 +1161,11 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
 
 /// Formats a unified diff between two supposedly different types and writes it to the provided
 /// output stream.
-fn write_type_diff<W>(tokens: &Tokens, other_tokens: &Tokens, writer: W) -> Result<(), crate::Error>
-where
-    W: Write,
-{
+fn write_type_diff<W: Write>(
+    tokens: &Tokens,
+    other_tokens: &Tokens,
+    writer: W,
+) -> Result<(), crate::Error> {
     let pretty = pretty_format_type(tokens);
     let other_pretty = pretty_format_type(other_tokens);
     crate::diff::unified(&pretty, &other_pretty, writer)
