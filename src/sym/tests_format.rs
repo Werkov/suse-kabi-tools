@@ -3,7 +3,6 @@
 
 use super::*;
 use crate::assert_ok;
-use std::path::Path;
 
 #[test]
 fn format_typedef() {
@@ -251,7 +250,6 @@ fn format_removal() {
             Token::new_atom(";"),
             Token::new_atom("}"),
         ],
-        Path::new("-"),
         &mut out,
     );
     assert_ok!(result);
@@ -303,7 +301,6 @@ fn format_removal_top() {
             Token::new_atom("ivalue5"),
             Token::new_atom(";"),
         ],
-        Path::new("-"),
         &mut out,
     );
     assert_ok!(result);
@@ -355,7 +352,6 @@ fn format_removal_end() {
             Token::new_atom("ivalue4"),
             Token::new_atom(";"),
         ],
-        Path::new("-"),
         &mut out,
     );
     assert_ok!(result);
@@ -422,7 +418,6 @@ fn format_max_context() {
             Token::new_atom("ivalue7"),
             Token::new_atom(";"),
         ],
-        Path::new("-"),
         &mut out,
     );
     assert_ok!(result);
@@ -499,7 +494,6 @@ fn format_max_context2() {
             Token::new_atom("ivalue8"),
             Token::new_atom(";"),
         ],
-        Path::new("-"),
         &mut out,
     );
     assert_ok!(result);
@@ -546,7 +540,6 @@ fn format_addition() {
             Token::new_atom(";"),
             Token::new_atom("}"),
         ],
-        Path::new("-"),
         &mut out,
     );
     assert_ok!(result);
@@ -585,7 +578,6 @@ fn format_modification() {
             Token::new_atom(";"),
             Token::new_atom("}"),
         ],
-        Path::new("-"),
         &mut out,
     );
     assert_ok!(result);

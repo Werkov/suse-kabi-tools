@@ -1,7 +1,10 @@
 // Copyright (C) 2024 SUSE LLC <petr.pavlu@suse.com>
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use std::path::Path;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 
 pub mod diff;
 pub mod sym;
@@ -47,18 +50,72 @@ impl std::fmt::Display for Error {
 }
 
 /// A helper extension trait to map [`std::io::Error`] to [`crate::Error`], as
-/// `write!(...).map_io_error()`.
+/// `write!(data).map_io_error(context)`.
 trait MapIOErr {
-    fn map_io_err(self, path: &Path) -> Result<(), crate::Error>;
+    fn map_io_err(self, desc: &str) -> Result<(), crate::Error>;
 }
 
 impl MapIOErr for Result<(), std::io::Error> {
-    fn map_io_err(self, path: &Path) -> Result<(), crate::Error> {
-        self.map_err(|err| {
-            crate::Error::new_io(
-                &format!("Failed to write data to file '{}'", path.display()),
+    fn map_io_err(self, desc: &str) -> Result<(), crate::Error> {
+        self.map_err(|err| crate::Error::new_io(desc, err))
+    }
+}
+
+/// A [`std::fs::File`] wrapper that tracks the file path to provide better error context.
+struct PathFile {
+    path: PathBuf,
+    file: File,
+}
+
+impl PathFile {
+    pub fn open<P>(path: P) -> io::Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        Ok(Self {
+            path: path.as_ref().to_path_buf(),
+            file: File::open(path)?,
+        })
+    }
+
+    pub fn create<P>(path: P) -> io::Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        Ok(Self {
+            path: path.as_ref().to_path_buf(),
+            file: File::create(path)?,
+        })
+    }
+}
+
+impl Read for PathFile {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.file.read(buf).map_err(|err| {
+            io::Error::other(Error::new_io(
+                &format!("Failed to read data from file '{}'", self.path.display()),
                 err,
-            )
+            ))
+        })
+    }
+}
+
+impl Write for PathFile {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.file.write(buf).map_err(|err| {
+            io::Error::other(Error::new_io(
+                &format!("Failed to write data to file '{}'", self.path.display()),
+                err,
+            ))
+        })
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.file.flush().map_err(|err| {
+            io::Error::other(Error::new_io(
+                &format!("Failed to flush data to file '{}'", self.path.display()),
+                err,
+            ))
         })
     }
 }

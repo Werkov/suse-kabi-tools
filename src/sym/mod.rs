@@ -1,11 +1,9 @@
 // Copyright (C) 2024 SUSE LLC <petr.pavlu@suse.com>
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-use crate::debug;
-use crate::MapIOErr;
+use crate::{debug, MapIOErr, PathFile};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::iter::zip;
 use std::path::{Path, PathBuf};
@@ -286,7 +284,7 @@ impl SymCorpus {
                         }
                         let path = symfiles[work_idx].as_path();
 
-                        let file = File::open(path).map_err(|err| {
+                        let file = PathFile::open(path).map_err(|err| {
                             crate::Error::new_io(
                                 &format!("Failed to open file '{}'", path.display()),
                                 err,
@@ -340,7 +338,10 @@ impl SymCorpus {
         let mut remap: HashMap<String, HashMap<String, usize>> = HashMap::new();
 
         // Read all content from the file.
-        let lines = read_lines(path, reader)?;
+        let lines = match read_lines(reader) {
+            Ok(lines) => lines,
+            Err(err) => return Err(crate::Error::new_io("Failed to read symtypes data", err)),
+        };
 
         // Detect whether the input is a single or consolidated symtypes file.
         let mut is_consolidated = false;
@@ -711,7 +712,7 @@ impl SymCorpus {
         let writer: Box<dyn Write> = if path == Path::new("-") {
             Box::new(io::stdout())
         } else {
-            match File::create(path) {
+            match PathFile::create(path) {
                 Ok(file) => Box::new(file),
                 Err(err) => {
                     return Err(crate::Error::new_io(
@@ -722,13 +723,11 @@ impl SymCorpus {
             }
         };
 
-        self.write_consolidated_buffer(path, writer)
+        self.write_consolidated_buffer(writer)
     }
 
-    /// Writes the corpus in the consolidated form into a specified writer.
-    ///
-    /// The `path` should point to a `.symtypes` file name, indicating the target of the data.
-    pub fn write_consolidated_buffer<W>(&self, path: &Path, writer: W) -> Result<(), crate::Error>
+    /// Writes the corpus in the consolidated form to the provided output stream.
+    pub fn write_consolidated_buffer<W>(&self, writer: W) -> Result<(), crate::Error>
     where
         W: Write,
     {
@@ -779,6 +778,8 @@ impl SymCorpus {
         let mut sorted_records = output_types.into_iter().collect::<Vec<_>>();
         sorted_records.sort_by_key(|(name, _remap)| (is_export_name(name), *name));
 
+        let err_desc = "Failed to write a consolidated record";
+
         for (name, remap) in sorted_records {
             let variants = self.types.get(name).unwrap();
             let mut sorted_remap = remap
@@ -792,14 +793,14 @@ impl SymCorpus {
                 let tokens = &variants[variant_idx];
 
                 if needs_suffix {
-                    write!(writer, "{}@{}", name, remap_idx).map_io_err(path)?;
+                    write!(writer, "{}@{}", name, remap_idx).map_io_err(err_desc)?;
                 } else {
-                    write!(writer, "{}", name).map_io_err(path)?;
+                    write!(writer, "{}", name).map_io_err(err_desc)?;
                 }
                 for token in tokens {
-                    write!(writer, " {}", token.as_str()).map_io_err(path)?;
+                    write!(writer, " {}", token.as_str()).map_io_err(err_desc)?;
                 }
-                writeln!(writer).map_io_err(path)?;
+                writeln!(writer).map_io_err(err_desc)?;
             }
         }
 
@@ -817,15 +818,15 @@ impl SymCorpus {
             // Output the F# record in form `F#<filename> <type@variant>... <export>...`. Types with
             // only one variant in the entire consolidated file can be skipped because they can be
             // implicitly determined by a reader.
-            write!(writer, "F#{}", symfile.path.display()).map_io_err(path)?;
+            write!(writer, "F#{}", symfile.path.display()).map_io_err(err_desc)?;
             for &(_, name, remap_idx) in &sorted_types {
                 if remap_idx != usize::MAX {
-                    write!(writer, " {}@{}", name, remap_idx).map_io_err(path)?;
+                    write!(writer, " {}@{}", name, remap_idx).map_io_err(err_desc)?;
                 } else if is_export_name(name) {
-                    write!(writer, " {}", name).map_io_err(path)?;
+                    write!(writer, " {}", name).map_io_err(err_desc)?;
                 }
             }
-            writeln!(writer).map_io_err(path)?;
+            writeln!(writer).map_io_err(err_desc)?;
         }
         Ok(())
     }
@@ -928,11 +929,10 @@ impl SymCorpus {
 
     /// Compares symbols in the `self` and `other_corpus`.
     ///
-    /// A human-readable report about all found changes is output into `writer`.
+    /// A human-readable report about all found changes is written to the provided output stream.
     pub fn compare_with<W>(
         &self,
         other_corpus: &SymCorpus,
-        path: &Path,
         writer: W,
         num_workers: i32,
     ) -> Result<(), crate::Error>
@@ -940,6 +940,7 @@ impl SymCorpus {
         W: Write,
     {
         let mut writer = BufWriter::new(writer);
+        let err_desc = "Failed to write a comparison result";
 
         // Check for symbols in self but not in other_corpus, and vice versa.
         for (exports_a, exports_b, change) in [
@@ -948,7 +949,8 @@ impl SymCorpus {
         ] {
             for name in exports_a.keys() {
                 if !exports_b.contains_key(name) {
-                    writeln!(writer, "Export '{}' has been {}", name, change).map_io_err(path)?;
+                    writeln!(writer, "Export '{}' has been {}", name, change)
+                        .map_io_err(err_desc)?;
                 }
             }
         }
@@ -995,7 +997,7 @@ impl SymCorpus {
         for ((name, tokens, other_tokens), exports) in changes {
             // Add an empty line to separate individual changes.
             if add_separator {
-                writeln!(writer).map_io_err(path)?;
+                writeln!(writer).map_io_err(err_desc)?;
             } else {
                 add_separator = true;
             }
@@ -1005,14 +1007,14 @@ impl SymCorpus {
                 "The following '{}' exports are different:",
                 exports.len()
             )
-            .map_io_err(path)?;
+            .map_io_err(err_desc)?;
             for export in exports {
-                writeln!(writer, " {}", export).map_io_err(path)?;
+                writeln!(writer, " {}", export).map_io_err(err_desc)?;
             }
-            writeln!(writer).map_io_err(path)?;
+            writeln!(writer).map_io_err(err_desc)?;
 
-            writeln!(writer, "because of a changed '{}':", name).map_io_err(path)?;
-            write_type_diff(tokens, other_tokens, path, writer.by_ref())?;
+            writeln!(writer, "because of a changed '{}':", name).map_io_err(err_desc)?;
+            write_type_diff(tokens, other_tokens, writer.by_ref())?;
         }
 
         Ok(())
@@ -1020,7 +1022,7 @@ impl SymCorpus {
 }
 
 /// Reads data from a specified reader and returns its content as a [`Vec`] of [`String`] lines.
-fn read_lines<R>(path: &Path, reader: R) -> Result<Vec<String>, crate::Error>
+fn read_lines<R>(reader: R) -> io::Result<Vec<String>>
 where
     R: Read,
 {
@@ -1029,12 +1031,7 @@ where
     for maybe_line in reader.lines() {
         match maybe_line {
             Ok(line) => lines.push(line),
-            Err(err) => {
-                return Err(crate::Error::new_io(
-                    &format!("Failed to read data from file '{}'", path.display()),
-                    err,
-                ))
-            }
+            Err(err) => return Err(err),
         };
     }
     Ok(lines)
@@ -1151,17 +1148,13 @@ fn pretty_format_type(tokens: &Tokens) -> Vec<String> {
     res
 }
 
-/// Formats a unified diff between two supposedly different types and writes the output to `writer`.
-fn write_type_diff<W>(
-    tokens: &Tokens,
-    other_tokens: &Tokens,
-    path: &Path,
-    writer: W,
-) -> Result<(), crate::Error>
+/// Formats a unified diff between two supposedly different types and writes it to the provided
+/// output stream.
+fn write_type_diff<W>(tokens: &Tokens, other_tokens: &Tokens, writer: W) -> Result<(), crate::Error>
 where
     W: Write,
 {
     let pretty = pretty_format_type(tokens);
     let other_pretty = pretty_format_type(other_tokens);
-    crate::diff::unified(&pretty, &other_pretty, path, writer)
+    crate::diff::unified(&pretty, &other_pretty, writer)
 }

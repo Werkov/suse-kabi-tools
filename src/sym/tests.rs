@@ -151,7 +151,7 @@ fn read_write_basic() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    let result = syms.write_consolidated_buffer(&mut out);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
@@ -187,7 +187,7 @@ fn read_write_shared_struct() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    let result = syms.write_consolidated_buffer(&mut out);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
@@ -225,7 +225,7 @@ fn read_write_differing_struct() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.write_consolidated_buffer(Path::new("consolidated.symtypes"), &mut out);
+    let result = syms.write_consolidated_buffer(&mut out);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
@@ -262,7 +262,7 @@ fn compare_identical() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    let result = syms.compare_with(&syms2, &mut out, 1);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
@@ -295,7 +295,7 @@ fn compare_added_export() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    let result = syms.compare_with(&syms2, &mut out, 1);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
@@ -328,7 +328,7 @@ fn compare_removed_export() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    let result = syms.compare_with(&syms2, &mut out, 1);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
@@ -362,7 +362,7 @@ fn compare_changed_type() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    let result = syms.compare_with(&syms2, &mut out, 1);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),
@@ -406,7 +406,7 @@ fn compare_changed_nested_type() {
     );
     assert_ok!(result);
     let mut out = Vec::new();
-    let result = syms.compare_with(&syms2, Path::new("-"), &mut out, 1);
+    let result = syms.compare_with(&syms2, &mut out, 1);
     assert_ok!(result);
     assert_eq!(
         String::from_utf8(out).unwrap(),

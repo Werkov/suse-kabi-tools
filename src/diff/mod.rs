@@ -5,7 +5,6 @@ use crate::MapIOErr;
 use std::fmt::Display;
 use std::io::{prelude::*, BufWriter};
 use std::ops::{Index, IndexMut};
-use std::path::Path;
 
 #[cfg(test)]
 mod tests;
@@ -137,26 +136,27 @@ fn write_hunk<W>(
     hunk_pos_b: usize,
     hunk_len_b: usize,
     hunk_data: &[String],
-    path: &Path,
     writer: &mut BufWriter<W>,
 ) -> Result<(), crate::Error>
 where
     W: Write,
 {
+    let err_desc = "Failed to write a diff hunk";
+
     writeln!(
         writer,
         "@@ -{},{} +{},{} @@",
         hunk_pos_a, hunk_len_a, hunk_pos_b, hunk_len_b
     )
-    .map_io_err(path)?;
+    .map_io_err(err_desc)?;
     for hunk_str in hunk_data {
-        writeln!(writer, "{}", hunk_str).map_io_err(path)?;
+        writeln!(writer, "{}", hunk_str).map_io_err(err_desc)?;
     }
     Ok(())
 }
 
 /// Compares `a` with `b` and writes their unified diff to the provided output stream.
-pub fn unified<T, W>(a: &[T], b: &[T], path: &Path, writer: W) -> Result<(), crate::Error>
+pub fn unified<T, W>(a: &[T], b: &[T], writer: W) -> Result<(), crate::Error>
 where
     T: AsRef<str> + PartialEq + Display,
     W: Write,
@@ -202,7 +202,6 @@ where
                         hunk_pos_b,
                         hunk_len_b,
                         &hunk_data,
-                        path,
                         &mut writer,
                     )?;
                     hunk_data.clear();
@@ -264,7 +263,6 @@ where
             hunk_pos_b,
             hunk_len_b,
             &hunk_data,
-            path,
             &mut writer,
         )?;
     }

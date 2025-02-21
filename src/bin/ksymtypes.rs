@@ -308,7 +308,7 @@ where
     {
         let _timing = Timing::new(do_timing, "Comparison");
 
-        if let Err(err) = syms.compare_with(&syms2, Path::new("-"), io::stdout(), num_workers) {
+        if let Err(err) = syms.compare_with(&syms2, io::stdout(), num_workers) {
             eprintln!(
                 "Failed to compare symtypes from '{}' and '{}': {}",
                 path, path2, err
