@@ -200,21 +200,28 @@ impl SymCorpus {
             crate::Error::new_io(&format!("Failed to query path '{}'", path.display()), err)
         })?;
 
-        // Collect recursively all symtypes if it is a directory, or push the single file.
-        let mut symfiles = Vec::new();
         if md.is_dir() {
-            Self::collect_symfiles(path, &mut symfiles)?;
-        } else {
-            symfiles.push(path.to_path_buf());
-        }
+            // Recursively collect symtypes files within the directory.
+            let mut symfiles = Vec::new();
+            Self::collect_symfiles(path, Path::new(""), &mut symfiles)?;
 
-        // Load all files.
-        self.load_symfiles(&symfiles, num_workers)
+            // Load all found files.
+            self.load_symfiles(path, &symfiles, num_workers)
+        } else {
+            // Load the single file.
+            self.load_symfiles(Path::new(""), &[path], num_workers)
+        }
     }
 
-    /// Collects recursively all `.symtypes` files under a given path.
-    fn collect_symfiles(path: &Path, symfiles: &mut Vec<PathBuf>) -> Result<(), crate::Error> {
-        let dir_iter = fs::read_dir(path).map_err(|err| {
+    /// Collects recursively all `.symtypes` files under the given root path and its subpath.
+    fn collect_symfiles(
+        root: &Path,
+        sub_path: &Path,
+        symfiles: &mut Vec<PathBuf>,
+    ) -> Result<(), crate::Error> {
+        let path = root.join(sub_path);
+
+        let dir_iter = fs::read_dir(&path).map_err(|err| {
             crate::Error::new_io(
                 &format!("Failed to read directory '{}'", path.display()),
                 err,
@@ -242,28 +249,34 @@ impl SymCorpus {
                 continue;
             }
 
+            let entry_sub_path = sub_path.join(entry.file_name());
+
             if md.is_dir() {
-                Self::collect_symfiles(&entry_path, symfiles)?;
+                Self::collect_symfiles(root, &entry_sub_path, symfiles)?;
                 continue;
             }
 
-            let ext = match entry_path.extension() {
+            let ext = match entry_sub_path.extension() {
                 Some(ext) => ext,
                 None => continue,
             };
             if ext == "symtypes" {
-                symfiles.push(entry_path.to_path_buf());
+                symfiles.push(entry_sub_path);
             }
         }
         Ok(())
     }
 
     /// Loads all specified `.symtypes` files.
-    fn load_symfiles(
+    fn load_symfiles<P>(
         &mut self,
-        symfiles: &[PathBuf],
+        root: &Path,
+        symfiles: &[P],
         num_workers: i32,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<(), crate::Error>
+    where
+        P: AsRef<Path> + Sync,
+    {
         // Load data from the files.
         let next_work_idx = AtomicUsize::new(0);
 
@@ -282,16 +295,17 @@ impl SymCorpus {
                         if work_idx >= symfiles.len() {
                             return Ok(());
                         }
-                        let path = symfiles[work_idx].as_path();
+                        let sub_path = &symfiles[work_idx].as_ref();
 
-                        let file = PathFile::open(path).map_err(|err| {
+                        let path = root.join(sub_path);
+                        let file = PathFile::open(&path).map_err(|err| {
                             crate::Error::new_io(
                                 &format!("Failed to open file '{}'", path.display()),
                                 err,
                             )
                         })?;
 
-                        Self::load_inner(path, file, &load_context)?;
+                        Self::load_inner(sub_path, file, &load_context)?;
                     }
                 }));
             }

@@ -92,8 +92,8 @@ fn consolidate_cmd() {
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n",
             "baz int baz ( s#foo )\n",
-            "F#tests/consolidate_cmd/a.symtypes bar\n",
-            "F#tests/consolidate_cmd/b.symtypes baz\n", //
+            "F#a.symtypes bar\n",
+            "F#b.symtypes baz\n", //
         )
     );
     assert_eq!(result.stderr, "");
@@ -121,8 +121,8 @@ fn consolidate_cmd_output() {
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n",
             "baz int baz ( s#foo )\n",
-            "F#tests/consolidate_cmd/a.symtypes bar\n",
-            "F#tests/consolidate_cmd/b.symtypes baz\n", //
+            "F#a.symtypes bar\n",
+            "F#b.symtypes baz\n", //
         )
     );
 }
