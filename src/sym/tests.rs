@@ -3,7 +3,6 @@
 
 use super::*;
 use crate::assert_ok;
-use std::path::Path;
 
 macro_rules! assert_parse_err {
     ($result:expr, $exp_desc:expr) => {
@@ -22,7 +21,7 @@ fn read_empty_record() {
     // Check that empty records are rejected when reading a file.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "s#test struct test { }\n",
             "\n",
@@ -38,7 +37,7 @@ fn read_duplicate_type_record() {
     // Check that type records with duplicate names are rejected when reading a file.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "s#test struct test { int a ; }\n",
             "s#test struct test { int b ; }\n", //
@@ -53,7 +52,7 @@ fn read_duplicate_file_record() {
     // Check that F# records with duplicate names are rejected when reading a consolidated file.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "bar int bar ( )\n",
             "baz int baz ( )\n",
@@ -74,7 +73,7 @@ fn read_invalid_file_record_ref() {
     // not known.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "F#test.symtypes bar\n", //
         )
@@ -89,7 +88,7 @@ fn read_invalid_file_record_ref2() {
     // the base name is not known.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "F#test.symtypes bar@0\n", //
         )
@@ -104,7 +103,7 @@ fn read_invalid_file_record_ref3() {
     // the variant index is not known.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "bar@0 int bar ( )\n",
             "F#test.symtypes bar@0\n",
@@ -120,7 +119,7 @@ fn read_duplicate_type_export() {
     // Check that two exports with the same name in different files get rejected.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "foo int foo ( )\n", //
         )
@@ -128,7 +127,7 @@ fn read_duplicate_type_export() {
     );
     assert_ok!(result);
     let result = syms.load_buffer(
-        Path::new("test2.symtypes"),
+        "test2.symtypes",
         concat!(
             "foo int foo ( )", //
         )
@@ -142,7 +141,7 @@ fn read_write_basic() {
     // Check reading of a single file and writing the consolidated output.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n", //
@@ -169,7 +168,7 @@ fn read_write_shared_struct() {
     // output.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n", //
@@ -178,7 +177,7 @@ fn read_write_shared_struct() {
     );
     assert_ok!(result);
     let result = syms.load_buffer(
-        Path::new("test2.symtypes"),
+        "test2.symtypes",
         concat!(
             "s#foo struct foo { int a ; }\n",
             "baz int baz ( s#foo )\n", //
@@ -207,7 +206,7 @@ fn read_write_differing_struct() {
     // consolidated output and they are correctly referenced by the F# entries.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("test.symtypes"),
+        "test.symtypes",
         concat!(
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n", //
@@ -216,7 +215,7 @@ fn read_write_differing_struct() {
     );
     assert_ok!(result);
     let result = syms.load_buffer(
-        Path::new("test2.symtypes"),
+        "test2.symtypes",
         concat!(
             "s#foo struct foo { UNKNOWN }\n",
             "baz int baz ( s#foo )\n", //
@@ -245,7 +244,7 @@ fn compare_identical() {
     // Check that the comparison of two identical corpuses shows no differences.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("a/test.symtypes"),
+        "a/test.symtypes",
         concat!(
             "bar int bar ( )\n", //
         )
@@ -254,7 +253,7 @@ fn compare_identical() {
     assert_ok!(result);
     let mut syms2 = SymCorpus::new();
     let result = syms2.load_buffer(
-        Path::new("b/test.symtypes"),
+        "b/test.symtypes",
         concat!(
             "bar int bar ( )\n", //
         )
@@ -277,7 +276,7 @@ fn compare_added_export() {
     // Check that the comparison of two corpuses reports any newly added export.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("a/test.symtypes"),
+        "a/test.symtypes",
         concat!(
             "bar int bar ( )\n", //
         )
@@ -286,7 +285,7 @@ fn compare_added_export() {
     assert_ok!(result);
     let mut syms2 = SymCorpus::new();
     let result = syms2.load_buffer(
-        Path::new("b/test.symtypes"),
+        "b/test.symtypes",
         concat!(
             "bar int bar ( )\n",
             "baz int baz ( )\n", //
@@ -310,7 +309,7 @@ fn compare_removed_export() {
     // Check that the comparison of two corpuses reports any removed export.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("a/test.symtypes"),
+        "a/test.symtypes",
         concat!(
             "bar int bar ( )\n",
             "baz int baz ( )\n", //
@@ -320,7 +319,7 @@ fn compare_removed_export() {
     assert_ok!(result);
     let mut syms2 = SymCorpus::new();
     let result = syms2.load_buffer(
-        Path::new("b/test.symtypes"),
+        "b/test.symtypes",
         concat!(
             "baz int baz ( )\n", //
         )
@@ -343,7 +342,7 @@ fn compare_changed_type() {
     // Check that the comparison of two corpuses reports changed types and affected exports.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("a/test.symtypes"),
+        "a/test.symtypes",
         concat!(
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( s#foo )\n", //
@@ -353,7 +352,7 @@ fn compare_changed_type() {
     assert_ok!(result);
     let mut syms2 = SymCorpus::new();
     let result = syms2.load_buffer(
-        Path::new("b/test.symtypes"),
+        "b/test.symtypes",
         concat!(
             "s#foo struct foo { int a ; int b ; }\n",
             "bar int bar ( s#foo )\n", //
@@ -387,7 +386,7 @@ fn compare_changed_nested_type() {
     // inputs.
     let mut syms = SymCorpus::new();
     let result = syms.load_buffer(
-        Path::new("a/test.symtypes"),
+        "a/test.symtypes",
         concat!(
             "s#foo struct foo { int a ; }\n",
             "bar int bar ( int a , s#foo )\n", //
@@ -397,7 +396,7 @@ fn compare_changed_nested_type() {
     assert_ok!(result);
     let mut syms2 = SymCorpus::new();
     let result = syms2.load_buffer(
-        Path::new("b/test.symtypes"),
+        "b/test.symtypes",
         concat!(
             "s#foo struct foo { int a ; int b ; }\n",
             "bar int bar ( s#foo , int a )\n", //

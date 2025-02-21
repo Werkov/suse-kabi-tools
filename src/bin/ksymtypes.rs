@@ -205,7 +205,7 @@ where
     {
         let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path));
 
-        if let Err(err) = syms.load(Path::new(&path), num_workers) {
+        if let Err(err) = syms.load(&path, num_workers) {
             eprintln!("Failed to read symtypes from '{}': {}", path, err);
             return Err(());
         }
@@ -217,7 +217,7 @@ where
             &format!("Writing consolidated symtypes to '{}'", output),
         );
 
-        if let Err(err) = syms.write_consolidated(Path::new(&output)) {
+        if let Err(err) = syms.write_consolidated(&output) {
             eprintln!(
                 "Failed to write consolidated symtypes to '{}': {}",
                 output, err
@@ -287,7 +287,7 @@ where
         let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path));
 
         let mut syms = SymCorpus::new();
-        if let Err(err) = syms.load(Path::new(&path), num_workers) {
+        if let Err(err) = syms.load(&path, num_workers) {
             eprintln!("Failed to read symtypes from '{}': {}", path, err);
             return Err(());
         }
@@ -298,7 +298,7 @@ where
         let _timing = Timing::new(do_timing, &format!("Reading symtypes from '{}'", path2));
 
         let mut syms2 = SymCorpus::new();
-        if let Err(err) = syms2.load(Path::new(&path2), num_workers) {
+        if let Err(err) = syms2.load(&path2, num_workers) {
             eprintln!("Failed to read symtypes from '{}': {}", path2, err);
             return Err(());
         }

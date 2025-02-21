@@ -194,7 +194,12 @@ impl SymCorpus {
     ///
     /// The `path` can point to a single `.symtypes` file or a directory. In the latter case, the
     /// function recursively collects all `.symtypes` in that directory and loads them.
-    pub fn load(&mut self, path: &Path, num_workers: i32) -> Result<(), crate::Error> {
+    pub fn load<P>(&mut self, path: P, num_workers: i32) -> Result<(), crate::Error>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+
         // Determine if the input is a directory tree or a single symtypes file.
         let md = fs::metadata(path).map_err(|err| {
             crate::Error::new_io(&format!("Failed to query path '{}'", path.display()), err)
@@ -203,22 +208,29 @@ impl SymCorpus {
         if md.is_dir() {
             // Recursively collect symtypes files within the directory.
             let mut symfiles = Vec::new();
-            Self::collect_symfiles(path, Path::new(""), &mut symfiles)?;
+            Self::collect_symfiles(path, "", &mut symfiles)?;
 
             // Load all found files.
             self.load_symfiles(path, &symfiles, num_workers)
         } else {
             // Load the single file.
-            self.load_symfiles(Path::new(""), &[path], num_workers)
+            self.load_symfiles("", &[path], num_workers)
         }
     }
 
     /// Collects recursively all `.symtypes` files under the given root path and its subpath.
-    fn collect_symfiles(
-        root: &Path,
-        sub_path: &Path,
+    fn collect_symfiles<P, Q>(
+        root: P,
+        sub_path: Q,
         symfiles: &mut Vec<PathBuf>,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<(), crate::Error>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        let root = root.as_ref();
+        let sub_path = sub_path.as_ref();
+
         let path = root.join(sub_path);
 
         let dir_iter = fs::read_dir(&path).map_err(|err| {
@@ -268,15 +280,18 @@ impl SymCorpus {
     }
 
     /// Loads all specified `.symtypes` files.
-    fn load_symfiles<P>(
+    fn load_symfiles<P, Q>(
         &mut self,
-        root: &Path,
-        symfiles: &[P],
+        root: P,
+        symfiles: &[Q],
         num_workers: i32,
     ) -> Result<(), crate::Error>
     where
-        P: AsRef<Path> + Sync,
+        P: AsRef<Path>,
+        Q: AsRef<Path> + Sync,
     {
+        let root = root.as_ref();
+
         // Load data from the files.
         let next_work_idx = AtomicUsize::new(0);
 
@@ -323,8 +338,9 @@ impl SymCorpus {
     /// Loads symtypes data from a specified reader.
     ///
     /// The `path` should point to a `.symtypes` file name, indicating the origin of the data.
-    pub fn load_buffer<R>(&mut self, path: &Path, reader: R) -> Result<(), crate::Error>
+    pub fn load_buffer<P, R>(&mut self, path: P, reader: R) -> Result<(), crate::Error>
     where
+        P: AsRef<Path>,
         R: Read,
     {
         let load_context = LoadContext {
@@ -339,10 +355,12 @@ impl SymCorpus {
     }
 
     /// Loads symtypes data from a specified reader.
-    fn load_inner<R>(path: &Path, reader: R, load_context: &LoadContext) -> Result<(), crate::Error>
+    fn load_inner<P, R>(path: P, reader: R, load_context: &LoadContext) -> Result<(), crate::Error>
     where
+        P: AsRef<Path>,
         R: Read,
     {
+        let path = path.as_ref();
         debug!("Loading '{}'", path.display());
 
         let mut records = FileRecords::new();
@@ -721,7 +739,12 @@ impl SymCorpus {
     }
 
     /// Writes the corpus in the consolidated form into a specified file.
-    pub fn write_consolidated(&self, path: &Path) -> Result<(), crate::Error> {
+    pub fn write_consolidated<P>(&self, path: P) -> Result<(), crate::Error>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+
         // Open the output file.
         let writer: Box<dyn Write> = if path == Path::new("-") {
             Box::new(io::stdout())
