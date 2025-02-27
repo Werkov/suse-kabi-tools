@@ -21,7 +21,7 @@ Version:        0.2.0+git5.9801863
 Release:        0
 Summary:        A set of ABI tools for the Linux kernel
 License:        GPL-2.0-or-later
-URL:            https://github.com/petrpavlu/suse-kabi-tools
+URL:            https://github.com/SUSE/suse-kabi-tools
 Source:         %{name}-%{version}.tar.zst
 BuildRequires:  cargo
 BuildRequires:  cargo-packaging
