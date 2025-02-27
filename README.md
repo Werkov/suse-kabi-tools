@@ -10,6 +10,7 @@ The project currently contains the following tools:
   during the Linux kernel build. It allows to consolidate multiple symtypes files into a single file
   and to compare symtypes data. For details, see the manual pages [ksymtypes(1)][ksymtypes_1] and
   [ksymtypes(5)][ksymtypes_5].
+* suse-kabi &ndash; a wrapper used by RPM when building SUSE kernels
 
 ## Installation
 
